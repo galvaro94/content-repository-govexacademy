@@ -1,0 +1,3262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GovEx Academy Resources</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #30363d #0d1117;
+        }
+
+        *::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        *::-webkit-scrollbar-track {
+            background: #0d1117;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            background-color: #30363d;
+            border-radius: 4px;
+        }
+
+        *::-webkit-scrollbar-thumb:hover {
+            background-color: #484f58;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-overlay {
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-content {
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-[#0d1117] text-[#e6edf3]">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useCallback, useRef } = React;
+
+        // User authentication data
+        const USERS = [
+            { id: 1, email: "jane.doe@govex.org", password: "demo123", name: "Jane Doe", role: "Program Manager", avatar: "JD" },
+            { id: 2, email: "john.smith@govex.org", password: "demo123", name: "John Smith", role: "Data Analyst", avatar: "JS" },
+            { id: 3, email: "sarah.miller@govex.org", password: "demo123", name: "Sarah Miller", role: "Research Director", avatar: "SM" },
+            { id: 4, email: "admin@govex.org", password: "admin123", name: "Admin User", role: "Administrator", avatar: "AU" }
+        ];
+
+        // Mock Database Structure
+        const MOCK_DATABASE = {
+            programs: [
+                {
+                    id: 1,
+                    name: "Bloomberg City Data Alliance",
+                    shortName: "CDA",
+                    cohorts: [
+                        { id: 1, name: "Cohort 1", active: false },
+                        { id: 2, name: "Cohort 2", active: false },
+                        { id: 3, name: "Cohort 3", active: false },
+                        { id: 4, name: "Cohort 4", active: true }
+                    ],
+                    color: "#3b82f6"
+                },
+                {
+                    id: 2,
+                    name: "Bloomberg Harvard City Leadership Initiative Data Track",
+                    shortName: "BHCLI",
+                    cohorts: [
+                        { id: 7, name: "Cohort 7", active: false },
+                        { id: 8, name: "Cohort 8", active: false },
+                        { id: 9, name: "Cohort 9", active: true }
+                    ],
+                    color: "#8b5cf6"
+                },
+                {
+                    id: 3,
+                    name: "What Works Cities Sprints",
+                    shortName: "WWC",
+                    cohorts: [
+                        { id: 1, name: "Sprint 1", active: false },
+                        { id: 2, name: "Sprint 2", active: true },
+                        { id: 3, name: "Sprint 3", active: false }
+                    ],
+                    color: "#10b981"
+                },
+                {
+                    id: 4,
+                    name: "AI Courses",
+                    shortName: "AI",
+                    cohorts: [
+                        { id: 1, name: "Cohort 1", active: true },
+                        { id: 2, name: "Cohort 2", active: false }
+                    ],
+                    color: "#f59e0b"
+                },
+                {
+                    id: 5,
+                    name: "Self-Guided Courses",
+                    shortName: "SGC",
+                    cohorts: [
+                        { id: 1, name: "All Sessions", active: true }
+                    ],
+                    color: "#ef4444"
+                }
+            ],
+            resources: [
+                {
+                    id: 1,
+                    resourceName: "A-to-Z Master Inventory",
+                    englishLink: "https://docs.google.com/spreadsheets/d/abc123/edit",
+                    spanishLink: "https://docs.google.com/spreadsheets/d/abc124/edit",
+                    portugueseLink: null,
+                    italianLink: null,
+                    govexOrExternal: "GovEx",
+                    topics: ["Data Inventory", "Data Management", "Data Quality"],
+                    programsUsed: ["CDA3", "CDA4", "BH9"],
+                    fileType: ".xlsx",
+                    fillable: true,
+                    authors: ["Laila", "Jacquie"],
+                    lastUpdated: "2024-09-28",
+                    description: "A comprehensive inventory of all available resources for data management and analysis",
+                    version: "v2.1",
+                    createdYear: 2024,
+                    isFavorite: false
+                },
+                {
+                    id: 2,
+                    resourceName: "Project Proposal Template",
+                    englishLink: "https://docs.google.com/document/d/xyz789/edit",
+                    spanishLink: null,
+                    portugueseLink: null,
+                    italianLink: null,
+                    govexOrExternal: "GovEx",
+                    topics: ["Capacity Building", "Internal Culture"],
+                    programsUsed: ["BH9", "WWC"],
+                    fileType: ".docx",
+                    fillable: true,
+                    authors: ["Sarah", "Michael"],
+                    lastUpdated: "2024-07-20",
+                    description: "Standardized template for submitting data project proposals with evaluation criteria",
+                    version: "v1.3",
+                    createdYear: 2024,
+                    isFavorite: true
+                },
+                {
+                    id: 3,
+                    resourceName: "Data Ethics Framework",
+                    englishLink: "https://docs.google.com/document/d/def456/edit",
+                    spanishLink: "https://docs.google.com/document/d/def457/edit",
+                    portugueseLink: "https://docs.google.com/document/d/def458/edit",
+                    italianLink: null,
+                    govexOrExternal: "External",
+                    topics: ["Data Quality", "Transparency", "External Stakeholders"],
+                    programsUsed: ["WWC", "AI1"],
+                    fileType: ".pdf",
+                    fillable: false,
+                    authors: ["External Partner"],
+                    lastUpdated: "2024-06-10",
+                    description: "Guidelines and best practices for ethical data collection and usage",
+                    version: "v3.0",
+                    createdYear: 2024,
+                    isFavorite: false
+                },
+                {
+                    id: 4,
+                    resourceName: "AI Implementation Roadmap",
+                    englishLink: "https://docs.google.com/presentation/d/ghi123/edit",
+                    spanishLink: null,
+                    portugueseLink: null,
+                    italianLink: null,
+                    govexOrExternal: "GovEx",
+                    topics: ["Capacity Building", "Internal Culture", "Data Management"],
+                    programsUsed: ["AI1", "AI2"],
+                    fileType: ".pptx",
+                    fillable: false,
+                    authors: ["Chris", "Emily"],
+                    lastUpdated: "2024-08-01",
+                    description: "Step-by-step guide for implementing AI solutions in city government",
+                    version: "v1.0",
+                    createdYear: 2024,
+                    isFavorite: true
+                },
+                {
+                    id: 5,
+                    resourceName: "Data Visualization Best Practices",
+                    englishLink: "https://example.com/video/dataviz",
+                    spanishLink: "https://example.com/video/dataviz-es",
+                    portugueseLink: null,
+                    italianLink: null,
+                    govexOrExternal: "External",
+                    topics: ["Data Quality", "Transparency"],
+                    programsUsed: ["CDA3", "CDA4"],
+                    fileType: ".html",
+                    fillable: false,
+                    authors: ["External Expert"],
+                    lastUpdated: "2024-05-22",
+                    description: "Video tutorial covering effective data visualization techniques and tools",
+                    version: "v2.0",
+                    createdYear: 2023,
+                    isFavorite: false
+                },
+                {
+                    id: 6,
+                    resourceName: "Performance Metrics Dashboard",
+                    englishLink: "https://docs.google.com/spreadsheets/d/jkl456/edit",
+                    spanishLink: null,
+                    portugueseLink: null,
+                    italianLink: null,
+                    govexOrExternal: "GovEx",
+                    topics: ["Data Inventory", "Transparency", "External Stakeholders"],
+                    programsUsed: ["SGC"],
+                    fileType: ".xlsx",
+                    fillable: true,
+                    authors: ["Laila", "Chris"],
+                    lastUpdated: "2024-07-15",
+                    description: "Interactive dashboard template for tracking city performance metrics",
+                    version: "v1.5",
+                    createdYear: 2024,
+                    isFavorite: true
+                },
+                {
+                    id: 7,
+                    resourceName: "Open Data Policy Framework",
+                    englishLink: "https://docs.google.com/document/d/mno789/edit",
+                    spanishLink: "https://docs.google.com/document/d/mno790/edit",
+                    portugueseLink: null,
+                    italianLink: "https://docs.google.com/document/d/mno791/edit",
+                    govexOrExternal: "GovEx",
+                    topics: ["Transparency", "External Stakeholders", "Data Management"],
+                    programsUsed: ["WWC", "BH9"],
+                    fileType: ".pdf",
+                    fillable: false,
+                    authors: ["Sarah", "Jacquie"],
+                    lastUpdated: "2024-04-30",
+                    description: "Comprehensive framework for developing and implementing open data policies",
+                    version: "v2.2",
+                    createdYear: 2023,
+                    isFavorite: false
+                },
+                {
+                    id: 8,
+                    resourceName: "Machine Learning Fundamentals",
+                    englishLink: "https://docs.google.com/presentation/d/pqr123/edit",
+                    spanishLink: null,
+                    portugueseLink: null,
+                    italianLink: null,
+                    govexOrExternal: "External",
+                    topics: ["Capacity Building", "Data Quality"],
+                    programsUsed: ["AI1", "AI2", "CDA4"],
+                    fileType: ".pptx",
+                    fillable: false,
+                    authors: ["External Expert", "University Partner"],
+                    lastUpdated: "2024-06-25",
+                    description: "Introduction to machine learning concepts for government applications",
+                    version: "v1.1",
+                    createdYear: 2024,
+                    isFavorite: false
+                },
+                {
+                    id: 9,
+                    resourceName: "Data Governance Handbook",
+                    englishLink: "https://docs.google.com/document/d/stu456/edit",
+                    spanishLink: "https://docs.google.com/document/d/stu457/edit",
+                    portugueseLink: "https://docs.google.com/document/d/stu458/edit",
+                    italianLink: "https://docs.google.com/document/d/stu459/edit",
+                    govexOrExternal: "GovEx",
+                    topics: ["Data Management", "Internal Culture", "Capacity Building"],
+                    programsUsed: ["BH7", "BH8", "BH9"],
+                    fileType: ".pdf",
+                    fillable: false,
+                    authors: ["Michael", "Emily"],
+                    lastUpdated: "2024-03-28",
+                    description: "Essential guide for establishing data governance structures in city departments",
+                    version: "v3.1",
+                    createdYear: 2023,
+                    isFavorite: true
+                },
+                {
+                    id: 10,
+                    resourceName: "Community Engagement Toolkit",
+                    englishLink: "https://docs.google.com/spreadsheets/d/vwx789/edit",
+                    spanishLink: "https://docs.google.com/spreadsheets/d/vwx790/edit",
+                    portugueseLink: null,
+                    italianLink: null,
+                    govexOrExternal: "GovEx",
+                    topics: ["External Stakeholders", "Transparency", "Capacity Building"],
+                    programsUsed: ["CDA3", "CDA4", "WWC"],
+                    fileType: ".xlsx",
+                    fillable: true,
+                    authors: ["Laila", "Sarah"],
+                    lastUpdated: "2024-08-10",
+                    description: "Tools and strategies for engaging communities in data-driven decision making",
+                    version: "v1.8",
+                    createdYear: 2024,
+                    isFavorite: false
+                },
+                {
+                    id: 11,
+                    resourceName: "Budget Analysis Workshop Materials",
+                    englishLink: "https://example.com/workshop/budget",
+                    spanishLink: null,
+                    portugueseLink: null,
+                    italianLink: null,
+                    govexOrExternal: "External",
+                    topics: ["Capacity Building", "Data Management"],
+                    programsUsed: ["BH7", "BH8"],
+                    fileType: ".html",
+                    fillable: false,
+                    authors: ["Workshop Provider"],
+                    lastUpdated: "2024-07-05",
+                    description: "Interactive workshop materials for analyzing and optimizing city budgets",
+                    version: "v2.3",
+                    createdYear: 2024,
+                    isFavorite: false
+                },
+                {
+                    id: 12,
+                    resourceName: "Data Privacy Compliance Checklist",
+                    englishLink: "https://docs.google.com/document/d/abc999/edit",
+                    spanishLink: "https://docs.google.com/document/d/abc998/edit",
+                    portugueseLink: "https://docs.google.com/document/d/abc997/edit",
+                    italianLink: null,
+                    govexOrExternal: "GovEx",
+                    topics: ["Data Quality", "Internal Culture", "Transparency"],
+                    programsUsed: ["SGC", "AI1"],
+                    fileType: ".docx",
+                    fillable: true,
+                    authors: ["Chris", "Jacquie"],
+                    lastUpdated: "2024-08-15",
+                    description: "Comprehensive checklist for data privacy regulations and compliance requirements",
+                    version: "v1.2",
+                    createdYear: 2024,
+                    isFavorite: true
+                }
+            ],
+            fileRequests: [
+                {
+                    id: 1,
+                    description: "Guide on advanced data analysis techniques",
+                    program: "Bloomberg City Data Alliance",
+                    cohort: "Cohort 4",
+                    status: "In Review",
+                    dateSubmitted: "2024-07-26",
+                    requestedBy: "John Smith",
+                    assignedTo: "Laila",
+                    notes: "Working on creating comprehensive guide",
+                    expectedCompletion: "2024-08-15",
+                    additionalContext: "Need practical examples and case studies for municipal data analysis"
+                },
+                {
+                    id: 2,
+                    description: "Template for citizen feedback collection",
+                    program: "What Works Cities Sprints",
+                    cohort: "Sprint 2",
+                    status: "Open",
+                    dateSubmitted: "2024-08-01",
+                    requestedBy: "Emily Davis",
+                    assignedTo: null,
+                    notes: null,
+                    expectedCompletion: null,
+                    additionalContext: "Should include both digital and paper-based feedback mechanisms"
+                },
+                {
+                    id: 3,
+                    description: "Video tutorial on GIS mapping for beginners",
+                    program: "Bloomberg Harvard City Leadership Initiative Data Track",
+                    cohort: "Cohort 9",
+                    status: "Completed",
+                    dateSubmitted: "2024-07-15",
+                    requestedBy: "Michael Chen",
+                    assignedTo: "Chris",
+                    notes: "Video completed and uploaded to resource library",
+                    expectedCompletion: "2024-07-30",
+                    additionalContext: "Focus on QGIS and ArcGIS basics for city planners"
+                },
+                {
+                    id: 4,
+                    description: "Best practices for AI ethics in government",
+                    program: "AI Courses",
+                    cohort: "Cohort 1",
+                    status: "In Review",
+                    dateSubmitted: "2024-08-05",
+                    requestedBy: "Sarah Miller",
+                    assignedTo: "Emily",
+                    notes: "Research phase completed, drafting document",
+                    expectedCompletion: "2024-08-20",
+                    additionalContext: "Include case studies from other cities and legal considerations"
+                },
+                {
+                    id: 5,
+                    description: "Gap: Missing budget analysis tools for small cities",
+                    program: "Self-Guided Courses",
+                    cohort: "All Sessions",
+                    status: "Open",
+                    dateSubmitted: "2024-08-10",
+                    requestedBy: "Jane Doe",
+                    assignedTo: null,
+                    notes: null,
+                    expectedCompletion: null,
+                    additionalContext: "Current resources focus on large cities, need tools for municipalities under 50k population"
+                },
+                {
+                    id: 6,
+                    description: "Data visualization checklist for presentations",
+                    program: "Bloomberg City Data Alliance",
+                    cohort: "Cohort 3",
+                    status: "Rejected",
+                    dateSubmitted: "2024-07-20",
+                    requestedBy: "Alex Johnson",
+                    assignedTo: "Jacquie",
+                    notes: "Similar resource already exists in the database",
+                    expectedCompletion: null,
+                    additionalContext: "Quick reference guide for creating effective charts and graphs"
+                }
+            ],
+            recentActivity: [
+                {
+                    id: 1,
+                    type: "request_update",
+                    resource: "Advanced Data Analysis Guide",
+                    requestId: 1,
+                    user: "Laila",
+                    timestamp: "2 hours ago",
+                    description: "File request moved to In Review"
+                },
+                {
+                    id: 2,
+                    type: "update",
+                    resource: "Data Privacy Compliance Guide",
+                    programId: 5,
+                    cohortId: 1,
+                    user: "Sarah Miller",
+                    timestamp: "4 hours ago",
+                    description: "Document updated"
+                },
+                {
+                    id: 3,
+                    type: "request_completed",
+                    resource: "GIS Mapping Tutorial",
+                    requestId: 3,
+                    user: "Chris",
+                    timestamp: "Today",
+                    description: "File request completed and published"
+                },
+                {
+                    id: 4,
+                    type: "new",
+                    resource: "Community Engagement Toolkit",
+                    programId: 1,
+                    cohortId: 4,
+                    user: "John Smith",
+                    timestamp: "Yesterday",
+                    description: "New resource added"
+                },
+                {
+                    id: 5,
+                    type: "request_new",
+                    resource: "Budget Analysis Tools",
+                    requestId: 5,
+                    user: "Jane Doe",
+                    timestamp: "Yesterday",
+                    description: "New gap identification submitted"
+                }
+            ]
+        };
+
+        // TODO: Replace with API call to Google Sheets
+        async function fetchDataFromGoogleSheets() {
+            // Placeholder for future Google Sheets API integration
+            // const response = await fetch('YOUR_GOOGLE_SHEETS_API_ENDPOINT');
+            // const data = await response.json();
+            // return data;
+
+            return MOCK_DATABASE;
+        }
+
+        // Icon components using Lucide
+        function Icon({ name, className = "", size = 20 }) {
+            useEffect(() => {
+                lucide.createIcons();
+            }, []);
+
+            return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+        }
+
+        // Login Component
+        function LoginPage({ onLogin }) {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError('');
+
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                const user = USERS.find(u => u.email === email && u.password === password);
+
+                if (user) {
+                    onLogin(user);
+                } else {
+                    setError('Invalid email or password');
+                }
+                setIsLoading(false);
+            };
+
+            return (
+                <div className="min-h-screen bg-[#0d1117] flex items-center justify-center p-4">
+                    <div className="w-full max-w-md">
+                        <div className="bg-[#161b22] border border-[#30363d] rounded-lg p-8 shadow-xl">
+                            <div className="text-center mb-8">
+                                <div className="w-16 h-16 bg-[#137fec] rounded-lg flex items-center justify-center mx-auto mb-4">
+                                    <Icon name="book-open" className="text-white" size={32} />
+                                </div>
+                                <h1 className="text-2xl font-bold text-[#e6edf3]">GovEx Academy</h1>
+                                <p className="text-[#8b949e] mt-2">Sign in to access your resources</p>
+                            </div>
+
+                            <form onSubmit={handleLogin} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-[#e6edf3] mb-2">Email</label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                                        placeholder="Enter your email"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#e6edf3] mb-2">Password</label>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                                        placeholder="Enter your password"
+                                        required
+                                    />
+                                </div>
+                                {error && (
+                                    <div className="p-3 bg-[#f85149] bg-opacity-10 border border-[#f85149] rounded-lg">
+                                        <p className="text-[#f85149] text-sm">{error}</p>
+                                    </div>
+                                )}
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full bg-[#137fec] text-white py-2 px-4 rounded-lg hover:bg-[#1c8fed] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <Icon name="loader-2" className="animate-spin mr-2" size={16} />
+                                            Signing in...
+                                        </>
+                                    ) : (
+                                        'Sign In'
+                                    )}
+                                </button>
+                            </form>
+
+                            <div className="mt-6 p-4 bg-[#0d1117] rounded-lg">
+                                <p className="text-xs text-[#8b949e] mb-2">Demo Accounts:</p>
+                                <div className="space-y-1 text-xs">
+                                    <div className="text-[#e6edf3]">jane.doe@govex.org / demo123</div>
+                                    <div className="text-[#e6edf3]">john.smith@govex.org / demo123</div>
+                                    <div className="text-[#e6edf3]">admin@govex.org / admin123</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Header Component
+        function Header({ searchQuery, setSearchQuery, hasNotifications, currentUser, onLogout, onFileRequest, showStatsDropdown, setShowStatsDropdown, showRequestsDropdown, setShowRequestsDropdown, fileRequests, resources, programs, recentActivity }) {
+            const [showProfile, setShowProfile] = useState(false);
+
+            // Close dropdowns when clicking outside
+            useEffect(() => {
+                function handleClickOutside(event) {
+                    if (!event.target.closest('.dropdown-container')) {
+                        setShowStatsDropdown(false);
+                        setShowRequestsDropdown(false);
+                        setShowProfile(false);
+                    }
+                }
+
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => {
+                    document.removeEventListener('mousedown', handleClickOutside);
+                };
+            }, [setShowStatsDropdown, setShowRequestsDropdown]);
+
+            // Calculate stats
+            const stats = useMemo(() => {
+                const total = resources.length;
+                const govexCount = resources.filter(r => r.govexOrExternal === 'GovEx').length;
+                const externalCount = resources.filter(r => r.govexOrExternal === 'External').length;
+                const fillableCount = resources.filter(r => r.fillable).length;
+                const multiLangCount = resources.filter(r =>
+                    [r.englishLink, r.spanishLink, r.portugueseLink, r.italianLink].filter(Boolean).length > 1
+                ).length;
+
+                return { total, govexCount, externalCount, fillableCount, multiLangCount };
+            }, [resources]);
+
+            return (
+                <header className="bg-[#161b22] border-b border-[#30363d] px-6 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-6 flex-1">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-10 h-10 bg-[#137fec] rounded-lg flex items-center justify-center">
+                                    <Icon name="book-open" className="text-white" size={24} />
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-semibold text-[#e6edf3]">GovEx Academy Resources</h1>
+                                    <p className="text-xs text-[#8b949e]">Welcome back, {currentUser.name.split(' ')[0]}</p>
+                                </div>
+                            </div>
+                            <div className="flex-1 max-w-2xl">
+                                <div className="relative">
+                                    <Icon name="search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8b949e]" size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search resources..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg pl-10 pr-4 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                            <button
+                                onClick={onFileRequest}
+                                className="flex items-center space-x-2 px-3 py-2 bg-[#137fec] hover:bg-[#1c5aa8] text-white rounded-lg transition-colors font-medium text-sm"
+                            >
+                                <Icon name="file-plus" size={16} />
+                                <span>Request File</span>
+                            </button>
+
+                            {/* File Requests Button */}
+                            <div className="relative dropdown-container">
+                                <button
+                                    onClick={() => setShowRequestsDropdown(!showRequestsDropdown)}
+                                    className="flex items-center space-x-2 px-3 py-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors font-medium text-sm"
+                                >
+                                    <Icon name="file-text" size={16} />
+                                    <span>File Requests</span>
+                                    <Icon name="chevron-down" size={14} />
+                                </button>
+
+                                {showRequestsDropdown && (
+                                    <div className="absolute right-0 mt-2 w-80 bg-[#161b22] border border-[#30363d] rounded-lg shadow-lg z-50">
+                                        <div className="p-4">
+                                            <h3 className="text-lg font-semibold text-[#e6edf3] mb-4">File Requests</h3>
+                                            {fileRequests && fileRequests.length > 0 ? (
+                                                <div className="space-y-3">
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div className="bg-[#0d1117] p-3 rounded-lg">
+                                                            <div className="text-xs text-[#8b949e]">Active</div>
+                                                            <div className="text-xl font-semibold text-[#e6edf3]">
+                                                                {fileRequests.filter(r => ['Submitted', 'In Review', 'In Progress'].includes(r.status)).length}
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-[#0d1117] p-3 rounded-lg">
+                                                            <div className="text-xs text-[#8b949e]">Completed</div>
+                                                            <div className="text-xl font-semibold text-[#e6edf3]">
+                                                                {fileRequests.filter(r => r.status === 'Completed').length}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <div className="text-sm font-medium text-[#e6edf3]">Recent Requests</div>
+                                                        {fileRequests.slice(0, 3).map(request => (
+                                                            <div key={request.id} className="bg-[#0d1117] p-3 rounded-lg">
+                                                                <div className="flex items-start justify-between mb-1">
+                                                                    <span className="text-sm text-[#e6edf3] line-clamp-2">
+                                                                        {request.description.length > 35
+                                                                            ? `${request.description.substring(0, 35)}...`
+                                                                            : request.description}
+                                                                    </span>
+                                                                    <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium text-white ml-2 ${
+                                                                        request.status === 'Submitted' ? 'bg-blue-500' :
+                                                                        request.status === 'In Review' ? 'bg-yellow-500' :
+                                                                        request.status === 'In Progress' ? 'bg-purple-500' :
+                                                                        request.status === 'Completed' ? 'bg-green-500' :
+                                                                        'bg-gray-500'
+                                                                    }`}>
+                                                                        {request.status}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="text-xs text-[#8b949e]">
+                                                                    {request.program} • {request.assignedTo}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowRequestsDropdown(false);
+                                                            onFileRequest();
+                                                        }}
+                                                        className="w-full mt-3 px-3 py-2 bg-[#137fec] hover:bg-[#1c5aa8] text-white rounded-lg transition-colors font-medium text-sm"
+                                                    >
+                                                        View All Requests
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-4 text-[#8b949e]">
+                                                    <Icon name="inbox" size={32} className="mx-auto mb-2 opacity-50" />
+                                                    <p className="text-sm">No requests yet</p>
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowRequestsDropdown(false);
+                                                            onFileRequest();
+                                                        }}
+                                                        className="mt-3 px-3 py-2 bg-[#137fec] hover:bg-[#1c5aa8] text-white rounded-lg transition-colors font-medium text-sm"
+                                                    >
+                                                        Create First Request
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Quick Stats Button */}
+                            <div className="relative dropdown-container">
+                                <button
+                                    onClick={() => setShowStatsDropdown(!showStatsDropdown)}
+                                    className="flex items-center space-x-2 px-3 py-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors font-medium text-sm"
+                                >
+                                    <Icon name="bar-chart-3" size={16} />
+                                    <span>Quick Stats</span>
+                                    <Icon name="chevron-down" size={14} />
+                                </button>
+
+                                {showStatsDropdown && (
+                                    <div className="absolute right-0 mt-2 w-72 bg-[#161b22] border border-[#30363d] rounded-lg shadow-lg z-50">
+                                        <div className="p-4">
+                                            <h3 className="text-lg font-semibold text-[#e6edf3] mb-4">Quick Stats</h3>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="bg-[#0d1117] p-3 rounded-lg">
+                                                    <div className="text-xs text-[#8b949e]">Total Resources</div>
+                                                    <div className="text-xl font-semibold text-[#e6edf3]">{stats.total}</div>
+                                                </div>
+                                                <div className="bg-[#0d1117] p-3 rounded-lg">
+                                                    <div className="text-xs text-[#8b949e]">GovEx Resources</div>
+                                                    <div className="text-xl font-semibold text-[#e6edf3]">{stats.govexCount}</div>
+                                                </div>
+                                                <div className="bg-[#0d1117] p-3 rounded-lg">
+                                                    <div className="text-xs text-[#8b949e]">External Resources</div>
+                                                    <div className="text-xl font-semibold text-[#e6edf3]">{stats.externalCount}</div>
+                                                </div>
+                                                <div className="bg-[#0d1117] p-3 rounded-lg">
+                                                    <div className="text-xs text-[#8b949e]">Fillable Templates</div>
+                                                    <div className="text-xl font-semibold text-[#e6edf3]">{stats.fillableCount}</div>
+                                                </div>
+                                                <div className="bg-[#0d1117] p-3 rounded-lg col-span-2">
+                                                    <div className="text-xs text-[#8b949e]">Multi-language</div>
+                                                    <div className="text-xl font-semibold text-[#e6edf3]">{stats.multiLangCount}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <button className="relative p-2 hover:bg-[#30363d] rounded-lg transition-colors">
+                                <Icon name="bell" className="text-[#8b949e]" />
+                                {hasNotifications && (
+                                    <span className="absolute top-1 right-1 w-2 h-2 bg-[#f85149] rounded-full"></span>
+                                )}
+                            </button>
+                            <div className="relative dropdown-container">
+                                <button
+                                    onClick={() => setShowProfile(!showProfile)}
+                                    className="flex items-center space-x-2 p-2 hover:bg-[#30363d] rounded-lg transition-colors"
+                                >
+                                    <div className="w-8 h-8 bg-[#137fec] rounded-full flex items-center justify-center">
+                                        <span className="text-white text-sm font-medium">{currentUser.avatar}</span>
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="text-[#e6edf3] text-sm">{currentUser.name}</div>
+                                        <div className="text-[#8b949e] text-xs">{currentUser.role}</div>
+                                    </div>
+                                    <Icon name="chevron-down" className="text-[#8b949e]" size={16} />
+                                </button>
+                                {showProfile && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-[#161b22] border border-[#30363d] rounded-lg shadow-lg z-50">
+                                        <div className="px-4 py-3 border-b border-[#30363d]">
+                                            <p className="text-sm font-medium text-[#e6edf3]">{currentUser.name}</p>
+                                            <p className="text-xs text-[#8b949e]">{currentUser.email}</p>
+                                        </div>
+                                        <a href="#" className="block px-4 py-2 text-[#e6edf3] hover:bg-[#30363d] transition-colors">Profile</a>
+                                        <a href="#" className="block px-4 py-2 text-[#e6edf3] hover:bg-[#30363d] transition-colors">Settings</a>
+                                        <hr className="border-[#30363d]" />
+                                        <button
+                                            onClick={onLogout}
+                                            className="w-full text-left px-4 py-2 text-[#e6edf3] hover:bg-[#30363d] transition-colors"
+                                        >
+                                            Sign out
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        }
+
+        // Sidebar Component
+        function Sidebar({
+            programs,
+            resources,
+            selectedFilters,
+            setSelectedFilters,
+            expandedPrograms,
+            setExpandedPrograms,
+            setShowProgramModal,
+            resourceCounts
+        }) {
+            const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+            const toggleProgram = (programId) => {
+                setExpandedPrograms(prev => ({
+                    ...prev,
+                    [programId]: !prev[programId]
+                }));
+            };
+
+            const toggleCohort = (programId, cohortId) => {
+                setSelectedFilters(prev => {
+                    const key = `${programId}-${cohortId}`;
+                    const newCohorts = new Set(prev.selectedCohorts);
+                    if (newCohorts.has(key)) {
+                        newCohorts.delete(key);
+                    } else {
+                        newCohorts.add(key);
+                    }
+                    return { ...prev, selectedCohorts: newCohorts };
+                });
+            };
+
+            const toggleFilter = (filterType, value) => {
+                setSelectedFilters(prev => {
+                    if (filterType === 'fillableOnly') {
+                        return { ...prev, fillableOnly: !prev.fillableOnly };
+                    }
+
+                    const newSet = new Set(prev[filterType]);
+                    if (newSet.has(value)) {
+                        newSet.delete(value);
+                    } else {
+                        newSet.add(value);
+                    }
+                    return { ...prev, [filterType]: newSet };
+                });
+            };
+
+            // Get unique values for dynamic filters
+            const uniqueTopics = [...new Set(resources.flatMap(r => r.topics))].sort();
+            const uniqueAuthors = [...new Set(resources.flatMap(r => r.authors))].sort();
+            const fileTypeGroups = {
+                "Spreadsheet": [".xls", ".xlsx"],
+                "Document": [".pdf"],
+                "Word": [".doc", ".docx"],
+                "Presentation": [".pptx"],
+                "Web": [".html"]
+            };
+
+            if (sidebarCollapsed) {
+                return (
+                    <aside className="w-12 bg-[#161b22] border-r border-[#30363d] p-2">
+                        <button
+                            onClick={() => setSidebarCollapsed(false)}
+                            className="p-2 hover:bg-[#30363d] rounded-lg transition-colors"
+                        >
+                            <Icon name="menu" className="text-[#8b949e]" />
+                        </button>
+                    </aside>
+                );
+            }
+
+            return (
+                <aside className="w-80 bg-[#161b22] border-r border-[#30363d] overflow-y-auto">
+                    <div className="p-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-semibold text-[#e6edf3]">Filters</h2>
+                            <button
+                                onClick={() => setSidebarCollapsed(true)}
+                                className="p-1 hover:bg-[#30363d] rounded transition-colors"
+                            >
+                                <Icon name="x" className="text-[#8b949e]" size={18} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* Programs & Cohorts */}
+                            <div>
+                                <h3 className="text-sm font-medium text-[#8b949e] mb-3">Programs & Cohorts</h3>
+                                <div className="space-y-2">
+                                    {programs.map(program => (
+                                        <div key={program.id} className="border border-[#30363d] rounded-lg overflow-hidden">
+                                            <button
+                                                onClick={() => toggleProgram(program.id)}
+                                                className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#30363d] transition-colors"
+                                            >
+                                                <span className="text-[#e6edf3] text-sm font-medium">{program.name}</span>
+                                                <Icon
+                                                    name={expandedPrograms[program.id] ? "chevron-up" : "chevron-down"}
+                                                    className="text-[#8b949e]"
+                                                    size={16}
+                                                />
+                                            </button>
+                                            {expandedPrograms[program.id] && (
+                                                <div className="px-3 py-2 bg-[#0d1117] space-y-1">
+                                                    {program.cohorts.map(cohort => {
+                                                        const key = `${program.id}-${cohort.id}`;
+                                                        const count = resourceCounts[key] || 0;
+                                                        return (
+                                                            <label key={cohort.id} className="flex items-center justify-between py-1 cursor-pointer hover:bg-[#161b22] px-2 rounded">
+                                                                <div className="flex items-center">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selectedFilters.selectedCohorts.has(key)}
+                                                                        onChange={() => toggleCohort(program.id, cohort.id)}
+                                                                        className="mr-2 rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                                                    />
+                                                                    <span className="text-[#e6edf3] text-sm">{cohort.name}</span>
+                                                                </div>
+                                                                <span className="text-[#8b949e] text-xs">({count})</span>
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={() => setShowProgramModal(true)}
+                                        className="w-full px-3 py-2 border border-dashed border-[#30363d] rounded-lg flex items-center justify-center space-x-2 hover:border-[#137fec] hover:bg-[#30363d] transition-colors"
+                                    >
+                                        <Icon name="plus" className="text-[#137fec]" size={16} />
+                                        <span className="text-[#137fec] text-sm">Add Program</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Source Filter */}
+                            <div>
+                                <h3 className="text-sm font-medium text-[#8b949e] mb-3">Source</h3>
+                                <div className="space-y-2">
+                                    {["GovEx", "External"].map(source => (
+                                        <label key={source} className="flex items-center cursor-pointer hover:bg-[#30363d] p-2 rounded">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedFilters.sources.has(source)}
+                                                onChange={() => toggleFilter('sources', source)}
+                                                className="mr-2 rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                            />
+                                            <span className="text-[#e6edf3] text-sm">{source} Resources</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* File Type Filter */}
+                            <div>
+                                <h3 className="text-sm font-medium text-[#8b949e] mb-3">File Type</h3>
+                                <div className="space-y-2">
+                                    {Object.entries(fileTypeGroups).map(([groupName, types]) => (
+                                        <label key={groupName} className="flex items-center cursor-pointer hover:bg-[#30363d] p-2 rounded">
+                                            <input
+                                                type="checkbox"
+                                                checked={types.some(type => selectedFilters.fileTypes.has(type))}
+                                                onChange={() => {
+                                                    types.forEach(type => toggleFilter('fileTypes', type));
+                                                }}
+                                                className="mr-2 rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                            />
+                                            <span className="text-[#e6edf3] text-sm">
+                                                {types.join(' / ')} ({groupName})
+                                            </span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Fillable Filter */}
+                            <div>
+                                <h3 className="text-sm font-medium text-[#8b949e] mb-3">Template Type</h3>
+                                <div className="space-y-2">
+                                    <label className="flex items-center cursor-pointer hover:bg-[#30363d] p-2 rounded">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedFilters.fillableOnly}
+                                            onChange={() => toggleFilter('fillableOnly')}
+                                            className="mr-2 rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                        />
+                                        <span className="text-[#e6edf3] text-sm">Fillable Templates Only</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Topic Tags Filter */}
+                            <div>
+                                <h3 className="text-sm font-medium text-[#8b949e] mb-3">Topics</h3>
+                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                    {uniqueTopics.map(topic => (
+                                        <label key={topic} className="flex items-center cursor-pointer hover:bg-[#30363d] p-2 rounded">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedFilters.topics.has(topic)}
+                                                onChange={() => toggleFilter('topics', topic)}
+                                                className="mr-2 rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                            />
+                                            <span className="text-[#e6edf3] text-sm">{topic}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Authors Filter */}
+                            <div>
+                                <h3 className="text-sm font-medium text-[#8b949e] mb-3">Authors</h3>
+                                <div className="space-y-2 max-h-32 overflow-y-auto">
+                                    {uniqueAuthors.map(author => (
+                                        <label key={author} className="flex items-center cursor-pointer hover:bg-[#30363d] p-2 rounded">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedFilters.authors.has(author)}
+                                                onChange={() => toggleFilter('authors', author)}
+                                                className="mr-2 rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                            />
+                                            <span className="text-[#e6edf3] text-sm">{author}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Language Availability Filter */}
+                            <div>
+                                <h3 className="text-sm font-medium text-[#8b949e] mb-3">Language Availability</h3>
+                                <div className="space-y-2">
+                                    {[
+                                        { code: 'english', label: 'English' },
+                                        { code: 'spanish', label: 'Spanish' },
+                                        { code: 'portuguese', label: 'Portuguese' },
+                                        { code: 'italian', label: 'Italian' }
+                                    ].map(lang => (
+                                        <label key={lang.code} className="flex items-center cursor-pointer hover:bg-[#30363d] p-2 rounded">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedFilters.languages.has(lang.code)}
+                                                onChange={() => toggleFilter('languages', lang.code)}
+                                                className="mr-2 rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                            />
+                                            <span className="text-[#e6edf3] text-sm">{lang.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Year Filter */}
+                            <div>
+                                <h3 className="text-sm font-medium text-[#8b949e] mb-3">Year Filter</h3>
+                                <label className="flex items-center cursor-pointer hover:bg-[#30363d] p-2 rounded">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedFilters.showRecent}
+                                        onChange={(e) => setSelectedFilters(prev => ({ ...prev, showRecent: e.target.checked }))}
+                                        className="mr-2 rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                    />
+                                    <span className="text-[#e6edf3] text-sm">Show only 2024+</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            );
+        }
+
+        // Resource Card Component
+        function ResourceCard({ resource, programs, onToggleFavorite }) {
+            const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
+
+            const fileTypeIcons = {
+                ".xlsx": "table-2", ".xls": "table-2",
+                ".pdf": "file-text",
+                ".docx": "file-text", ".doc": "file-text",
+                ".pptx": "presentation",
+                ".html": "globe"
+            };
+
+            const fileTypeColors = {
+                ".xlsx": "bg-[#10b981]", ".xls": "bg-[#10b981]",
+                ".pdf": "bg-[#f85149]",
+                ".docx": "bg-[#3b82f6]", ".doc": "bg-[#3b82f6]",
+                ".pptx": "bg-[#f59e0b]",
+                ".html": "bg-[#8b5cf6]"
+            };
+
+            // Get programs for this resource
+            const resourcePrograms = resource.programsUsed || [];
+
+            // Get available languages
+            const availableLanguages = [
+                { code: 'EN', link: resource.englishLink, label: 'English' },
+                { code: 'ES', link: resource.spanishLink, label: 'Spanish' },
+                { code: 'PT', link: resource.portugueseLink, label: 'Portuguese' },
+                { code: 'IT', link: resource.italianLink, label: 'Italian' }
+            ].filter(lang => lang.link);
+
+            return (
+                <div className="bg-[#161b22] border border-[#30363d] rounded-lg p-4 hover:border-[#137fec] transition-all fade-in group">
+                    {/* Header with badges */}
+                    <div className="flex items-start justify-between mb-3">
+                        <div className="flex flex-wrap items-center gap-1">
+                            {/* Program badges */}
+                            {resourcePrograms.map(programCode => (
+                                <span
+                                    key={programCode}
+                                    className="px-2 py-1 text-xs font-medium rounded text-white bg-[#137fec]"
+                                >
+                                    {programCode}
+                                </span>
+                            ))}
+
+                            {/* Source badge */}
+                            <span className={`px-2 py-1 text-xs font-medium rounded text-white ${
+                                resource.govexOrExternal === 'GovEx' ? 'bg-[#137fec]' : 'bg-[#10b981]'
+                            }`}>
+                                {resource.govexOrExternal}
+                            </span>
+
+                            {/* File type badge */}
+                            <span className={`px-2 py-1 text-xs font-medium rounded text-white flex items-center space-x-1 ${
+                                fileTypeColors[resource.fileType] || 'bg-[#8b949e]'
+                            }`}>
+                                <Icon name={fileTypeIcons[resource.fileType] || 'file'} size={12} />
+                                <span>{resource.fileType}</span>
+                            </span>
+                        </div>
+
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleFavorite(resource.id);
+                            }}
+                            className="p-1 hover:bg-[#30363d] rounded transition-colors"
+                        >
+                            <Icon
+                                name="heart"
+                                className={resource.isFavorite ? "text-[#f85149] fill-current" : "text-[#8b949e] group-hover:text-[#e6edf3]"}
+                                size={16}
+                            />
+                        </button>
+                    </div>
+
+                    {/* Title */}
+                    <h3 className="text-[#e6edf3] font-medium mb-2 group-hover:text-[#137fec] transition-colors">
+                        {resource.resourceName}
+                    </h3>
+
+                    {/* Topic tags */}
+                    {resource.topics && resource.topics.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                            {resource.topics.slice(0, 3).map(topic => (
+                                <span
+                                    key={topic}
+                                    className="px-2 py-1 text-xs bg-[#30363d] text-[#8b949e] rounded"
+                                >
+                                    {topic}
+                                </span>
+                            ))}
+                            {resource.topics.length > 3 && (
+                                <span className="px-2 py-1 text-xs bg-[#30363d] text-[#8b949e] rounded">
+                                    +{resource.topics.length - 3} more
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Description */}
+                    <p className="text-[#8b949e] text-sm mb-3 line-clamp-2">"{resource.description}"</p>
+
+                    {/* Authors */}
+                    {resource.authors && resource.authors.length > 0 && (
+                        <p className="text-[#8b949e] text-sm mb-2">
+                            By: <span className="text-[#e6edf3]">{resource.authors.join(", ")}</span>
+                        </p>
+                    )}
+
+                    {/* Language availability and fillable indicator */}
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                            {/* Language icons */}
+                            <div className="flex items-center space-x-1">
+                                {availableLanguages.map(lang => (
+                                    <span
+                                        key={lang.code}
+                                        className="px-1.5 py-0.5 text-xs bg-[#30363d] text-[#e6edf3] rounded"
+                                        title={`Available in ${lang.label}`}
+                                    >
+                                        {lang.code}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Fillable indicator */}
+                        {resource.fillable && (
+                            <span className="px-2 py-1 text-xs bg-[#10b981] text-white rounded">
+                                Fillable Template
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2 text-xs text-[#8b949e]">
+                            <span>Updated {new Date(resource.lastUpdated).toLocaleDateString()}</span>
+                            <span>•</span>
+                            <span className="font-medium">{resource.version}</span>
+                        </div>
+
+                        {/* Multi-language download dropdown */}
+                        <div className="relative">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowDownloadDropdown(!showDownloadDropdown);
+                                }}
+                                className="px-3 py-1.5 bg-[#137fec] text-white rounded hover:bg-[#1c8fed] transition-colors text-sm flex items-center space-x-1"
+                            >
+                                <Icon name="download" size={14} />
+                                <span>Download</span>
+                                <Icon name="chevron-down" size={12} />
+                            </button>
+
+                            {showDownloadDropdown && (
+                                <div className="absolute right-0 mt-1 w-40 bg-[#0d1117] border border-[#30363d] rounded shadow-lg z-10">
+                                    {availableLanguages.map(lang => (
+                                        <a
+                                            key={lang.code}
+                                            href={lang.link}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block w-full text-left px-3 py-2 text-sm text-[#e6edf3] hover:bg-[#30363d] transition-colors"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            Download ({lang.label})
+                                        </a>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Right Sidebar Component
+        function RightSidebar({ recentActivity, programs, resources, fileRequests, onQuickAccess }) {
+            // Calculate quick stats
+            const stats = useMemo(() => {
+                const total = resources.length;
+                const govexCount = resources.filter(r => r.govexOrExternal === 'GovEx').length;
+                const externalCount = resources.filter(r => r.govexOrExternal === 'External').length;
+                const fillableCount = resources.filter(r => r.fillable).length;
+                const multiLangCount = resources.filter(r =>
+                    [r.englishLink, r.spanishLink, r.portugueseLink, r.italianLink].filter(Boolean).length > 1
+                ).length;
+
+                return { total, govexCount, externalCount, fillableCount, multiLangCount };
+            }, [resources]);
+
+            return (
+                <aside className="w-80 bg-[#161b22] border-l border-[#30363d] p-4 overflow-y-auto">
+                    {/* Quick Stats */}
+                    <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-[#e6edf3] mb-4">Quick Stats</h3>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 bg-[#0d1117] rounded-lg">
+                                <span className="text-sm text-[#8b949e]">Total Resources</span>
+                                <span className="text-lg font-semibold text-[#e6edf3]">{stats.total}</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-[#0d1117] rounded-lg">
+                                <span className="text-sm text-[#8b949e]">GovEx Resources</span>
+                                <span className="text-lg font-semibold text-[#137fec]">{stats.govexCount}</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-[#0d1117] rounded-lg">
+                                <span className="text-sm text-[#8b949e]">External Resources</span>
+                                <span className="text-lg font-semibold text-[#10b981]">{stats.externalCount}</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-[#0d1117] rounded-lg">
+                                <span className="text-sm text-[#8b949e]">Fillable Templates</span>
+                                <span className="text-lg font-semibold text-[#f59e0b]">{stats.fillableCount}</span>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-[#0d1117] rounded-lg">
+                                <span className="text-sm text-[#8b949e]">Multi-language</span>
+                                <span className="text-lg font-semibold text-[#8b5cf6]">{stats.multiLangCount}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Recent Activity */}
+                    <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-[#e6edf3] mb-4">Recent Activity</h3>
+                        <div className="space-y-3">
+                            {recentActivity.map(activity => {
+                                const program = programs.find(p => p.id === activity.programId);
+                                const cohort = program?.cohorts.find(c => c.id === activity.cohortId);
+                                const isRequestActivity = activity.type === 'request_submitted' || activity.type === 'request_update';
+
+                                return (
+                                    <div key={activity.id} className="p-3 bg-[#0d1117] rounded-lg">
+                                        <div className="flex items-start justify-between mb-1">
+                                            <span className="text-sm font-medium text-[#e6edf3]">{activity.resource}</span>
+                                            <span className="text-xs text-[#8b949e]">{activity.timestamp}</span>
+                                        </div>
+                                        <p className="text-xs text-[#8b949e] mb-1">{activity.description}</p>
+                                        <div className="flex items-center space-x-2">
+                                            {isRequestActivity ? (
+                                                <>
+                                                    <span className="px-1.5 py-0.5 text-xs rounded text-white bg-[#137fec]">
+                                                        File Request
+                                                    </span>
+                                                    <span className="text-xs text-[#8b949e]">by {activity.user}</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span
+                                                        className="px-1.5 py-0.5 text-xs rounded text-white"
+                                                        style={{ backgroundColor: program?.color || '#6b7280' }}
+                                                    >
+                                                        {program?.shortName || 'Unknown'}{cohort?.id || ''}
+                                                    </span>
+                                                    <span className="text-xs text-[#8b949e]">by {activity.user}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* File Requests Summary */}
+                    <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-[#e6edf3] mb-4">File Requests</h3>
+                        {fileRequests && fileRequests.length > 0 ? (
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="bg-[#0d1117] p-3 rounded-lg">
+                                        <div className="text-xs text-[#8b949e]">Active</div>
+                                        <div className="text-xl font-semibold text-[#e6edf3]">
+                                            {fileRequests.filter(r => ['Submitted', 'In Review', 'In Progress'].includes(r.status)).length}
+                                        </div>
+                                    </div>
+                                    <div className="bg-[#0d1117] p-3 rounded-lg">
+                                        <div className="text-xs text-[#8b949e]">Completed</div>
+                                        <div className="text-xl font-semibold text-[#e6edf3]">
+                                            {fileRequests.filter(r => r.status === 'Completed').length}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Recent Requests */}
+                                <div className="space-y-2">
+                                    <div className="text-sm font-medium text-[#e6edf3]">Recent Requests</div>
+                                    {fileRequests.slice(0, 3).map(request => (
+                                        <div key={request.id} className="bg-[#0d1117] p-3 rounded-lg">
+                                            <div className="flex items-start justify-between mb-1">
+                                                <span className="text-sm text-[#e6edf3] line-clamp-2">
+                                                    {request.description.length > 40
+                                                        ? `${request.description.substring(0, 40)}...`
+                                                        : request.description}
+                                                </span>
+                                                <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium text-white ml-2 ${
+                                                    request.status === 'Submitted' ? 'bg-blue-500' :
+                                                    request.status === 'In Review' ? 'bg-yellow-500' :
+                                                    request.status === 'In Progress' ? 'bg-purple-500' :
+                                                    request.status === 'Completed' ? 'bg-green-500' :
+                                                    'bg-gray-500'
+                                                }`}>
+                                                    {request.status}
+                                                </span>
+                                            </div>
+                                            <div className="text-xs text-[#8b949e]">
+                                                {request.program} • {request.assignedTo}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 text-[#8b949e]">
+                                <Icon name="inbox" size={32} className="mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">No requests yet</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Quick Access */}
+                    <div>
+                        <h3 className="text-lg font-semibold text-[#e6edf3] mb-4">Quick Access</h3>
+                        <div className="space-y-2">
+                            <button
+                                onClick={() => onQuickAccess('recent')}
+                                className="w-full p-3 bg-[#0d1117] hover:bg-[#30363d] rounded-lg text-left transition-colors"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-[#e6edf3]">Files created since 2024</span>
+                                    <Icon name="arrow-right" className="text-[#8b949e]" size={16} />
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => onQuickAccess('requests')}
+                                className="w-full p-3 bg-[#0d1117] hover:bg-[#30363d] rounded-lg text-left transition-colors"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-[#e6edf3]">File requests</span>
+                                    <Icon name="arrow-right" className="text-[#8b949e]" size={16} />
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => onQuickAccess('gaps')}
+                                className="w-full p-3 bg-[#0d1117] hover:bg-[#30363d] rounded-lg text-left transition-colors"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-[#e6edf3]">Identify gaps</span>
+                                    <Icon name="arrow-right" className="text-[#8b949e]" size={16} />
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => onQuickAccess('manage')}
+                                className="w-full p-3 bg-[#0d1117] hover:bg-[#30363d] rounded-lg text-left transition-colors"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-[#e6edf3]">Manage Programs & Cohorts</span>
+                                    <Icon name="arrow-right" className="text-[#8b949e]" size={16} />
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </aside>
+            );
+        }
+
+        // Add Resource Modal
+        function AddResourceModal({ programs, resources, onAddResource, onClose }) {
+            const [formData, setFormData] = useState({
+                resourceName: '',
+                description: '',
+                englishLink: '',
+                spanishLink: '',
+                portugueseLink: '',
+                italianLink: '',
+                govexOrExternal: 'GovEx',
+                topics: [],
+                programsUsed: [],
+                fileType: '',
+                fillable: false,
+                authors: [],
+                version: 'v1.0'
+            });
+            const [errors, setErrors] = useState({});
+            const [isSubmitting, setIsSubmitting] = useState(false);
+
+            const fileTypes = [".xlsx", ".xls", ".pdf", ".docx", ".doc", ".pptx", ".html"];
+            const commonTopics = [
+                "Data Inventory", "Data Management", "Data Quality", "Internal Culture",
+                "Capacity Building", "Transparency", "External Stakeholders"
+            ];
+
+            const [topicInput, setTopicInput] = useState('');
+            const [authorInput, setAuthorInput] = useState('');
+
+            const handleInputChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+                // Clear error when user starts typing
+                if (errors[field]) {
+                    setErrors(prev => ({ ...prev, [field]: '' }));
+                }
+            };
+
+            const handleArrayAdd = (field, value, inputSetter) => {
+                if (value.trim()) {
+                    setFormData(prev => ({
+                        ...prev,
+                        [field]: [...prev[field], value.trim()]
+                    }));
+                    inputSetter('');
+                }
+            };
+
+            const handleArrayRemove = (field, index) => {
+                setFormData(prev => ({
+                    ...prev,
+                    [field]: prev[field].filter((_, i) => i !== index)
+                }));
+            };
+
+            const handleProgramToggle = (programCode) => {
+                setFormData(prev => {
+                    const newPrograms = prev.programsUsed.includes(programCode)
+                        ? prev.programsUsed.filter(p => p !== programCode)
+                        : [...prev.programsUsed, programCode];
+                    return { ...prev, programsUsed: newPrograms };
+                });
+            };
+
+            const validateForm = () => {
+                const newErrors = {};
+
+                if (!formData.resourceName.trim()) newErrors.resourceName = 'Resource name is required';
+                if (!formData.description.trim()) newErrors.description = 'Description is required';
+                if (!formData.englishLink.trim()) newErrors.englishLink = 'English link is required';
+                if (!formData.fileType) newErrors.fileType = 'File type is required';
+                if (formData.programsUsed.length === 0) newErrors.programsUsed = 'At least one program is required';
+                if (formData.topics.length === 0) newErrors.topics = 'At least one topic is required';
+                if (formData.authors.length === 0) newErrors.authors = 'At least one author is required';
+
+                setErrors(newErrors);
+                return Object.keys(newErrors).length === 0;
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+
+                if (!validateForm()) return;
+
+                setIsSubmitting(true);
+
+                try {
+                    // Simulate API call delay
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    const newResource = {
+                        id: Math.max(...resources.map(r => r.id || 0)) + 1,
+                        resourceName: formData.resourceName.trim(),
+                        description: formData.description.trim(),
+                        englishLink: formData.englishLink.trim(),
+                        spanishLink: formData.spanishLink.trim() || null,
+                        portugueseLink: formData.portugueseLink.trim() || null,
+                        italianLink: formData.italianLink.trim() || null,
+                        govexOrExternal: formData.govexOrExternal,
+                        topics: formData.topics,
+                        programsUsed: formData.programsUsed,
+                        fileType: formData.fileType,
+                        fillable: formData.fillable,
+                        authors: formData.authors,
+                        lastUpdated: new Date().toISOString().split('T')[0],
+                        version: formData.version,
+                        createdYear: new Date().getFullYear(),
+                        isFavorite: false
+                    };
+
+                    onAddResource(newResource);
+                    onClose();
+                } catch (error) {
+                    console.error('Error adding resource:', error);
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay">
+                    <div className="bg-[#161b22] border border-[#30363d] rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto modal-content">
+                        <div className="p-6 border-b border-[#30363d]">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-semibold text-[#e6edf3]">Add New Resource</h2>
+                                <button onClick={onClose} className="p-1 hover:bg-[#30363d] rounded transition-colors">
+                                    <Icon name="x" className="text-[#8b949e]" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6">
+                            <div className="grid grid-cols-1 gap-6">
+                                {/* Resource Name */}
+                                <div>
+                                    <label className="block text-sm font-medium text-[#e6edf3] mb-2">Resource Name *</label>
+                                    <input
+                                        type="text"
+                                        value={formData.resourceName}
+                                        onChange={(e) => handleInputChange('resourceName', e.target.value)}
+                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                                        placeholder="Enter resource name"
+                                    />
+                                    {errors.resourceName && <p className="text-[#f85149] text-sm mt-1">{errors.resourceName}</p>}
+                                </div>
+
+                                {/* Description */}
+                                <div>
+                                    <label className="block text-sm font-medium text-[#e6edf3] mb-2">Description *</label>
+                                    <textarea
+                                        value={formData.description}
+                                        onChange={(e) => handleInputChange('description', e.target.value)}
+                                        rows={3}
+                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors resize-none"
+                                        placeholder="Brief description of the resource"
+                                    />
+                                    {errors.description && <p className="text-[#f85149] text-sm mt-1">{errors.description}</p>}
+                                </div>
+
+                                {/* Language Links */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#e6edf3] mb-2">English Link *</label>
+                                        <input
+                                            type="url"
+                                            value={formData.englishLink}
+                                            onChange={(e) => handleInputChange('englishLink', e.target.value)}
+                                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                                            placeholder="https://docs.google.com/..."
+                                        />
+                                        {errors.englishLink && <p className="text-[#f85149] text-sm mt-1">{errors.englishLink}</p>}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#e6edf3] mb-2">Spanish Link</label>
+                                        <input
+                                            type="url"
+                                            value={formData.spanishLink}
+                                            onChange={(e) => handleInputChange('spanishLink', e.target.value)}
+                                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                                            placeholder="https://docs.google.com/... (optional)"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#e6edf3] mb-2">Portuguese Link</label>
+                                        <input
+                                            type="url"
+                                            value={formData.portugueseLink}
+                                            onChange={(e) => handleInputChange('portugueseLink', e.target.value)}
+                                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                                            placeholder="https://docs.google.com/... (optional)"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#e6edf3] mb-2">Italian Link</label>
+                                        <input
+                                            type="url"
+                                            value={formData.italianLink}
+                                            onChange={(e) => handleInputChange('italianLink', e.target.value)}
+                                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                                            placeholder="https://docs.google.com/... (optional)"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Source and File Type */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#e6edf3] mb-2">Source</label>
+                                        <select
+                                            value={formData.govexOrExternal}
+                                            onChange={(e) => handleInputChange('govexOrExternal', e.target.value)}
+                                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] focus:outline-none focus:border-[#137fec] transition-colors"
+                                        >
+                                            <option value="GovEx">GovEx</option>
+                                            <option value="External">External</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#e6edf3] mb-2">File Type *</label>
+                                        <select
+                                            value={formData.fileType}
+                                            onChange={(e) => handleInputChange('fileType', e.target.value)}
+                                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] focus:outline-none focus:border-[#137fec] transition-colors"
+                                        >
+                                            <option value="">Select file type</option>
+                                            {fileTypes.map(type => (
+                                                <option key={type} value={type}>
+                                                    {type}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {errors.fileType && <p className="text-[#f85149] text-sm mt-1">{errors.fileType}</p>}
+                                    </div>
+                                </div>
+
+                                {/* Fillable checkbox and Version */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="flex items-center cursor-pointer hover:bg-[#30363d] p-2 rounded">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.fillable}
+                                                onChange={(e) => handleInputChange('fillable', e.target.checked)}
+                                                className="mr-2 rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                            />
+                                            <span className="text-[#e6edf3] text-sm">Fillable Template</span>
+                                        </label>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#e6edf3] mb-2">Version</label>
+                                        <input
+                                            type="text"
+                                            value={formData.version}
+                                            onChange={(e) => handleInputChange('version', e.target.value)}
+                                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                                            placeholder="e.g., v1.0"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Programs Used */}
+                                <div>
+                                    <label className="block text-sm font-medium text-[#e6edf3] mb-2">Programs Used *</label>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                        {programs.flatMap(program =>
+                                            program.cohorts.map(cohort => {
+                                                const programCode = `${program.shortName}${cohort.id}`;
+                                                return (
+                                                    <label key={programCode} className="flex items-center cursor-pointer hover:bg-[#30363d] p-2 rounded">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={formData.programsUsed.includes(programCode)}
+                                                            onChange={() => handleProgramToggle(programCode)}
+                                                            className="mr-2 rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                                        />
+                                                        <span className="text-[#e6edf3] text-sm">{programCode}</span>
+                                                    </label>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                    {errors.programsUsed && <p className="text-[#f85149] text-sm mt-1">{errors.programsUsed}</p>}
+                                </div>
+
+                                {/* Topics */}
+                                <div>
+                                    <label className="block text-sm font-medium text-[#e6edf3] mb-2">Topics *</label>
+                                    <div className="space-y-2">
+                                        <div className="flex flex-wrap gap-2">
+                                            {commonTopics.map(topic => (
+                                                <button
+                                                    key={topic}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (!formData.topics.includes(topic)) {
+                                                            handleArrayAdd('topics', topic, () => {});
+                                                        }
+                                                    }}
+                                                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                                                        formData.topics.includes(topic)
+                                                            ? 'bg-[#137fec] text-white'
+                                                            : 'bg-[#30363d] text-[#8b949e] hover:bg-[#484f58]'
+                                                    }`}
+                                                >
+                                                    {topic}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="flex space-x-2">
+                                            <input
+                                                type="text"
+                                                value={topicInput}
+                                                onChange={(e) => setTopicInput(e.target.value)}
+                                                onKeyPress={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleArrayAdd('topics', topicInput, setTopicInput);
+                                                    }
+                                                }}
+                                                className="flex-1 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                                                placeholder="Add custom topic..."
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => handleArrayAdd('topics', topicInput, setTopicInput)}
+                                                className="px-3 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#1c8fed] transition-colors"
+                                            >
+                                                Add
+                                            </button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {formData.topics.map((topic, index) => (
+                                                <span key={index} className="inline-flex items-center px-2 py-1 bg-[#137fec] text-white text-xs rounded">
+                                                    {topic}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleArrayRemove('topics', index)}
+                                                        className="ml-1 hover:text-[#f85149]"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {errors.topics && <p className="text-[#f85149] text-sm mt-1">{errors.topics}</p>}
+                                </div>
+
+                                {/* Authors */}
+                                <div>
+                                    <label className="block text-sm font-medium text-[#e6edf3] mb-2">Authors *</label>
+                                    <div className="space-y-2">
+                                        <div className="flex space-x-2">
+                                            <input
+                                                type="text"
+                                                value={authorInput}
+                                                onChange={(e) => setAuthorInput(e.target.value)}
+                                                onKeyPress={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleArrayAdd('authors', authorInput, setAuthorInput);
+                                                    }
+                                                }}
+                                                className="flex-1 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                                                placeholder="Add author name..."
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => handleArrayAdd('authors', authorInput, setAuthorInput)}
+                                                className="px-3 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#1c8fed] transition-colors"
+                                            >
+                                                Add
+                                            </button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {formData.authors.map((author, index) => (
+                                                <span key={index} className="inline-flex items-center px-2 py-1 bg-[#10b981] text-white text-xs rounded">
+                                                    {author}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleArrayRemove('authors', index)}
+                                                        className="ml-1 hover:text-[#f85149]"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    {errors.authors && <p className="text-[#f85149] text-sm mt-1">{errors.authors}</p>}
+                                </div>
+
+                                {/* Submit Buttons */}
+                                <div className="flex items-center justify-end space-x-3 pt-4 border-t border-[#30363d]">
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
+                                        className="px-4 py-2 text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#30363d] rounded-lg transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="px-6 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#1c8fed] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <Icon name="loader-2" className="animate-spin" size={16} />
+                                                <span>Adding...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Icon name="plus" size={16} />
+                                                <span>Add Resource</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // File Request Modal
+        function FileRequestModal({ programs, fileRequests, onSubmitRequest, onClose }) {
+            const [formData, setFormData] = useState({
+                description: '',
+                program: '',
+                additionalContext: ''
+            });
+            const [errors, setErrors] = useState({});
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [filter, setFilter] = useState('All');
+
+            const handleInputChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+                if (errors[field]) {
+                    setErrors(prev => ({ ...prev, [field]: '' }));
+                }
+            };
+
+            const validateForm = () => {
+                const newErrors = {};
+                if (!formData.description.trim()) {
+                    newErrors.description = 'Description is required';
+                }
+                if (!formData.program) {
+                    newErrors.program = 'Program is required';
+                }
+                return newErrors;
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                const newErrors = validateForm();
+
+                if (Object.keys(newErrors).length > 0) {
+                    setErrors(newErrors);
+                    return;
+                }
+
+                setIsSubmitting(true);
+
+                const newRequest = {
+                    id: Date.now(),
+                    description: formData.description,
+                    program: formData.program,
+                    status: 'Submitted',
+                    assignedTo: 'Unassigned',
+                    notes: '',
+                    requestedBy: 'Current User',
+                    requestDate: new Date().toISOString().split('T')[0],
+                    expectedCompletion: '',
+                    additionalContext: formData.additionalContext
+                };
+
+                try {
+                    await onSubmitRequest(newRequest);
+                    setFormData({ description: '', program: '', additionalContext: '' });
+                    setErrors({});
+                } catch (error) {
+                    setErrors({ submit: 'Failed to submit request. Please try again.' });
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            // Filter requests based on status
+            const filteredRequests = fileRequests.filter(request => {
+                if (filter === 'All') return true;
+                return request.status === filter;
+            });
+
+            const statusOptions = ['All', 'Submitted', 'In Review', 'In Progress', 'Completed', 'On Hold'];
+
+            const getStatusBadgeColor = (status) => {
+                switch (status) {
+                    case 'Submitted': return 'bg-blue-500';
+                    case 'In Review': return 'bg-yellow-500';
+                    case 'In Progress': return 'bg-purple-500';
+                    case 'Completed': return 'bg-green-500';
+                    case 'On Hold': return 'bg-red-500';
+                    default: return 'bg-gray-500';
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay">
+                    <div className="bg-[#161b22] border border-[#30363d] rounded-lg w-[95vw] h-[85vh] max-w-7xl modal-content flex flex-col">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-[#30363d]">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-[#137fec] rounded-lg flex items-center justify-center">
+                                    <Icon name="file-plus" className="text-white" size={18} />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-semibold text-[#e6edf3]">File Request & Gap Identification</h2>
+                                    <p className="text-sm text-[#8b949e]">Request new resources or identify content gaps</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={onClose}
+                                className="p-2 hover:bg-[#30363d] rounded-lg transition-colors"
+                            >
+                                <Icon name="x" className="text-[#8b949e]" size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="flex flex-1 overflow-hidden">
+                            {/* Left Side - Request Form */}
+                            <div className="w-1/2 p-6 border-r border-[#30363d] overflow-y-auto">
+                                <div className="space-y-6">
+                                    <div>
+                                        <h3 className="text-lg font-medium text-[#e6edf3] mb-4">Submit New Request</h3>
+                                        <form onSubmit={handleSubmit} className="space-y-4">
+                                            {/* Description Field */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-[#e6edf3] mb-2">
+                                                    Description *
+                                                </label>
+                                                <textarea
+                                                    value={formData.description}
+                                                    onChange={(e) => handleInputChange('description', e.target.value)}
+                                                    placeholder="Describe the resource you need..."
+                                                    rows="4"
+                                                    className={`w-full bg-[#0d1117] border rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors resize-none ${
+                                                        errors.description ? 'border-[#f85149]' : 'border-[#30363d]'
+                                                    }`}
+                                                />
+                                                {errors.description && (
+                                                    <p className="text-[#f85149] text-sm mt-1">{errors.description}</p>
+                                                )}
+                                            </div>
+
+                                            {/* Program Field */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-[#e6edf3] mb-2">
+                                                    Program *
+                                                </label>
+                                                <select
+                                                    value={formData.program}
+                                                    onChange={(e) => handleInputChange('program', e.target.value)}
+                                                    className={`w-full bg-[#0d1117] border rounded-lg px-3 py-2 text-[#e6edf3] focus:outline-none focus:border-[#137fec] transition-colors ${
+                                                        errors.program ? 'border-[#f85149]' : 'border-[#30363d]'
+                                                    }`}
+                                                >
+                                                    <option value="">Select a program...</option>
+                                                    {programs.map(program => (
+                                                        <option key={program.id} value={program.name}>
+                                                            {program.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {errors.program && (
+                                                    <p className="text-[#f85149] text-sm mt-1">{errors.program}</p>
+                                                )}
+                                            </div>
+
+                                            {/* Additional Context Field */}
+                                            <div>
+                                                <label className="block text-sm font-medium text-[#e6edf3] mb-2">
+                                                    Additional Context
+                                                </label>
+                                                <textarea
+                                                    value={formData.additionalContext}
+                                                    onChange={(e) => handleInputChange('additionalContext', e.target.value)}
+                                                    placeholder="Any additional details or requirements..."
+                                                    rows="3"
+                                                    className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors resize-none"
+                                                />
+                                            </div>
+
+                                            {/* Submit Button */}
+                                            <div className="pt-4">
+                                                <button
+                                                    type="submit"
+                                                    disabled={isSubmitting}
+                                                    className="w-full bg-[#137fec] hover:bg-[#1c5aa8] disabled:bg-[#30363d] text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
+                                                >
+                                                    {isSubmitting ? (
+                                                        <>
+                                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                            <span>Submitting...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Icon name="send" size={16} />
+                                                            <span>Submit Request</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+
+                                            {errors.submit && (
+                                                <p className="text-[#f85149] text-sm text-center">{errors.submit}</p>
+                                            )}
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Side - Requests Table */}
+                            <div className="w-1/2 p-6 overflow-y-auto">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-lg font-medium text-[#e6edf3]">Current Requests</h3>
+                                        <select
+                                            value={filter}
+                                            onChange={(e) => setFilter(e.target.value)}
+                                            className="bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-1 text-[#e6edf3] text-sm focus:outline-none focus:border-[#137fec] transition-colors"
+                                        >
+                                            {statusOptions.map(status => (
+                                                <option key={status} value={status}>{status}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Requests List */}
+                                    <div className="space-y-3">
+                                        {filteredRequests.length === 0 ? (
+                                            <div className="text-center py-8 text-[#8b949e]">
+                                                <Icon name="inbox" size={48} className="mx-auto mb-3 opacity-50" />
+                                                <p>No requests found</p>
+                                            </div>
+                                        ) : (
+                                            filteredRequests.map(request => (
+                                                <div key={request.id} className="bg-[#0d1117] border border-[#30363d] rounded-lg p-4 hover:border-[#484f58] transition-colors">
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <h4 className="font-medium text-[#e6edf3] text-sm line-clamp-2">
+                                                            {request.description}
+                                                        </h4>
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getStatusBadgeColor(request.status)}`}>
+                                                            {request.status}
+                                                        </span>
+                                                    </div>
+                                                    <div className="space-y-1 text-xs text-[#8b949e]">
+                                                        <div className="flex items-center space-x-4">
+                                                            <span>Program: {request.program}</span>
+                                                            <span>Assigned: {request.assignedTo}</span>
+                                                        </div>
+                                                        {request.requestDate && (
+                                                            <div>Requested: {request.requestDate}</div>
+                                                        )}
+                                                        {request.expectedCompletion && (
+                                                            <div>Expected: {request.expectedCompletion}</div>
+                                                        )}
+                                                        {request.notes && (
+                                                            <div className="mt-2 text-[#e6edf3] text-xs">
+                                                                Note: {request.notes}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Simple Demo Chatbot Sidebar
+        function DemoChatbot({ resources, programs, setSelectedFilters, setSearchQuery }) {
+            const [messages, setMessages] = useState([
+                {
+                    id: 1,
+                    type: 'bot',
+                    message: "👋 Hi! I'm your AI assistant. Try asking:\n\n• \"Find data quality resources\"\n• \"Show me GovEx resources\"\n• \"How many resources?\"\n• \"Resources by Laila\"",
+                    timestamp: new Date()
+                }
+            ]);
+            const [inputMessage, setInputMessage] = useState('');
+            const [isTyping, setIsTyping] = useState(false);
+            const messagesEndRef = useRef(null);
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages]);
+
+            const getResponse = (message) => {
+                const msg = message.toLowerCase();
+
+                if (msg.includes('data quality') || msg.includes('quality')) {
+                    return {
+                        message: "🎯 Found resources about data quality! Filtering now...",
+                        action: () => setSelectedFilters(prev => ({ ...prev, topics: new Set(['Data Quality']) }))
+                    };
+                }
+
+                if (msg.includes('govex') || msg.includes('internal')) {
+                    const count = resources.filter(r => r.govexOrExternal === 'GovEx').length;
+                    return {
+                        message: `🏢 Showing ${count} GovEx resources!`,
+                        action: () => setSelectedFilters(prev => ({ ...prev, sources: new Set(['GovEx']) }))
+                    };
+                }
+
+                if (msg.includes('laila')) {
+                    const count = resources.filter(r => r.authors?.includes('Laila')).length;
+                    return {
+                        message: `👤 Found ${count} resources by Laila!`,
+                        action: () => setSelectedFilters(prev => ({ ...prev, authors: new Set(['Laila']) }))
+                    };
+                }
+
+                if (msg.includes('how many') || msg.includes('count') || msg.includes('stats')) {
+                    const total = resources.length;
+                    const govex = resources.filter(r => r.govexOrExternal === 'GovEx').length;
+                    const external = resources.filter(r => r.govexOrExternal === 'External').length;
+                    return {
+                        message: `📊 **Dashboard Stats:**\n• Total: ${total} resources\n• GovEx: ${govex}\n• External: ${external}`,
+                        action: null
+                    };
+                }
+
+                if (msg.includes('excel') || msg.includes('xlsx')) {
+                    return {
+                        message: "📊 Filtering Excel files for you!",
+                        action: () => setSelectedFilters(prev => ({ ...prev, fileTypes: new Set(['.xlsx', '.xls']) }))
+                    };
+                }
+
+                if (msg.includes('transparency')) {
+                    return {
+                        message: "🔍 Showing transparency resources!",
+                        action: () => setSelectedFilters(prev => ({ ...prev, topics: new Set(['Transparency']) }))
+                    };
+                }
+
+                return {
+                    message: "I can help you find resources! Try:\n• \"Find [topic] resources\"\n• \"Show me [author] resources\"\n• \"Filter by [file type]\"\n• \"Dashboard stats\"",
+                    action: null
+                };
+            };
+
+            const handleSend = async () => {
+                if (!inputMessage.trim()) return;
+
+                const userMsg = {
+                    id: Date.now(),
+                    type: 'user',
+                    message: inputMessage,
+                    timestamp: new Date()
+                };
+
+                setMessages(prev => [...prev, userMsg]);
+                setInputMessage('');
+                setIsTyping(true);
+
+                setTimeout(() => {
+                    const response = getResponse(inputMessage);
+
+                    const botMsg = {
+                        id: Date.now() + 1,
+                        type: 'bot',
+                        message: response.message,
+                        timestamp: new Date()
+                    };
+
+                    setMessages(prev => [...prev, botMsg]);
+                    setIsTyping(false);
+
+                    if (response.action) {
+                        response.action();
+                    }
+                }, 800);
+            };
+
+            return (
+                <div className="w-80 bg-[#161b22] border-l border-[#30363d] flex flex-col">
+                    {/* Header */}
+                    <div className="p-4 border-b border-[#30363d]">
+                        <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 bg-[#137fec] rounded-full flex items-center justify-center">
+                                <Icon name="bot" className="text-white" size={16} />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-medium text-[#e6edf3]">AI Assistant</h3>
+                                <p className="text-xs text-[#8b949e]">Demo</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Messages */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[400px]">
+                        {messages.map(message => (
+                            <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] rounded-lg p-2 text-sm ${
+                                    message.type === 'user'
+                                        ? 'bg-[#137fec] text-white'
+                                        : 'bg-[#0d1117] text-[#e6edf3] border border-[#30363d]'
+                                }`}>
+                                    <div className="whitespace-pre-line">{message.message}</div>
+                                </div>
+                            </div>
+                        ))}
+
+                        {isTyping && (
+                            <div className="flex justify-start">
+                                <div className="bg-[#0d1117] border border-[#30363d] rounded-lg p-2">
+                                    <div className="flex space-x-1">
+                                        <div className="w-1.5 h-1.5 bg-[#8b949e] rounded-full animate-bounce"></div>
+                                        <div className="w-1.5 h-1.5 bg-[#8b949e] rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                                        <div className="w-1.5 h-1.5 bg-[#8b949e] rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Input */}
+                    <div className="p-4 border-t border-[#30363d]">
+                        <div className="flex space-x-2">
+                            <input
+                                type="text"
+                                value={inputMessage}
+                                onChange={(e) => setInputMessage(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                                placeholder="Ask me anything..."
+                                className="flex-1 bg-[#0d1117] border border-[#30363d] rounded px-2 py-1 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] text-sm"
+                            />
+                            <button
+                                onClick={handleSend}
+                                disabled={!inputMessage.trim() || isTyping}
+                                className="p-1.5 bg-[#137fec] text-white rounded hover:bg-[#1c8fed] transition-colors disabled:opacity-50"
+                            >
+                                <Icon name="send" size={14} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // AI Chatbot Component
+        function AIChatbot({
+            isOpen,
+            onClose,
+            resources,
+            programs,
+            selectedFilters,
+            setSelectedFilters,
+            setSearchQuery,
+            currentUser
+        }) {
+            const [messages, setMessages] = useState([
+                {
+                    id: 1,
+                    type: 'bot',
+                    message: "👋 Hi! I'm your GovEx Academy assistant. I can help you find resources, navigate the dashboard, or answer questions about our content. What can I help you with today?",
+                    timestamp: new Date()
+                }
+            ]);
+            const [inputMessage, setInputMessage] = useState('');
+            const [isTyping, setIsTyping] = useState(false);
+            const messagesEndRef = useRef(null);
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages]);
+
+            // Predefined responses and AI logic
+            const getAIResponse = (userMessage) => {
+                const message = userMessage.toLowerCase();
+
+                // Navigation help
+                if (message.includes('navigate') || message.includes('how to use') || message.includes('help')) {
+                    return {
+                        message: "I can help you navigate the dashboard! Here are the main areas:\n\n📊 **Left Sidebar**: Filter resources by programs, topics, authors, file types, and more\n📋 **Main Area**: Browse resource cards with download links\n📈 **Right Sidebar**: View quick stats and recent activity\n\nWhat would you like to explore?",
+                        actions: []
+                    };
+                }
+
+                // Search help
+                if (message.includes('find') || message.includes('search') || message.includes('looking for')) {
+                    const searchTerms = [];
+
+                    // Extract potential search terms
+                    const topics = ["data inventory", "data management", "data quality", "transparency", "capacity building", "internal culture", "external stakeholders"];
+                    const foundTopics = topics.filter(topic => message.includes(topic));
+
+                    if (foundTopics.length > 0) {
+                        return {
+                            message: `I found you're looking for resources about: **${foundTopics.join(', ')}**. Let me help you find those!`,
+                            actions: [
+                                { type: 'filter', filter: 'topics', values: foundTopics },
+                                { type: 'search', query: foundTopics[0] }
+                            ]
+                        };
+                    }
+
+                    // Check for file types
+                    const fileTypes = [".xlsx", ".pdf", ".docx", ".pptx"];
+                    const foundFileTypes = fileTypes.filter(type => message.includes(type.replace('.', '')));
+
+                    if (foundFileTypes.length > 0) {
+                        return {
+                            message: `Looking for ${foundFileTypes.join(' or ')} files? I'll filter those for you!`,
+                            actions: [
+                                { type: 'filter', filter: 'fileTypes', values: foundFileTypes }
+                            ]
+                        };
+                    }
+
+                    // Check for programs
+                    const programNames = programs.map(p => p.name.toLowerCase());
+                    const foundPrograms = programNames.filter(name => message.includes(name.split(' ')[0]));
+
+                    if (foundPrograms.length > 0) {
+                        return {
+                            message: `I can help you find resources from specific programs! Would you like me to filter by program?`,
+                            actions: []
+                        };
+                    }
+
+                    return {
+                        message: "I can help you search! Try asking me:\n\n🔍 \"Find resources about data quality\"\n📁 \"Show me Excel files\"\n🏢 \"What's available from GovEx?\"\n👥 \"Resources by Laila\"\n\nWhat are you looking for?",
+                        actions: []
+                    };
+                }
+
+                // Statistics questions
+                if (message.includes('how many') || message.includes('stats') || message.includes('count')) {
+                    const totalResources = resources.length;
+                    const govexCount = resources.filter(r => r.govexOrExternal === 'GovEx').length;
+                    const externalCount = resources.filter(r => r.govexOrExternal === 'External').length;
+                    const fillableCount = resources.filter(r => r.fillable).length;
+
+                    return {
+                        message: `📊 **Dashboard Statistics:**\n\n• **Total Resources**: ${totalResources}\n• **GovEx Resources**: ${govexCount}\n• **External Resources**: ${externalCount}\n• **Fillable Templates**: ${fillableCount}\n\nYou can see live stats in the right sidebar!`,
+                        actions: []
+                    };
+                }
+
+                // Add resource help
+                if (message.includes('add') || message.includes('create') || message.includes('new resource')) {
+                    return {
+                        message: "To add a new resource:\n\n1️⃣ Click the **\"Add Resource\"** button in the main dashboard\n2️⃣ Fill in the resource details (name, description, links)\n3️⃣ Select programs, topics, and authors\n4️⃣ Choose file type and mark if fillable\n\nWould you like me to open the add resource form?",
+                        actions: [
+                            { type: 'action', action: 'openAddResource' }
+                        ]
+                    };
+                }
+
+                // Filter help
+                if (message.includes('filter') || message.includes('narrow down')) {
+                    return {
+                        message: "🔽 **Available Filters:**\n\n📂 **Programs & Cohorts**: Filter by specific program/cohort combinations\n🏢 **Source**: GovEx or External resources\n📄 **File Type**: Excel, PDF, Word, PowerPoint, Web\n✅ **Fillable**: Templates you can fill out\n🏷️ **Topics**: Data management, transparency, etc.\n👤 **Authors**: Filter by creator\n🌐 **Languages**: Available in multiple languages\n\nWhat would you like to filter by?",
+                        actions: []
+                    };
+                }
+
+                // Authors question
+                if (message.includes('author') || message.includes('who created') || message.includes('made by')) {
+                    const uniqueAuthors = [...new Set(resources.flatMap(r => r.authors))];
+
+                    // Check if asking about specific author
+                    const foundAuthor = uniqueAuthors.find(author =>
+                        message.includes(author.toLowerCase())
+                    );
+
+                    if (foundAuthor) {
+                        const authorResources = resources.filter(r => r.authors.includes(foundAuthor));
+                        return {
+                            message: `👤 **${foundAuthor}** has created ${authorResources.length} resource(s):\n\n${authorResources.map(r => `• ${r.resourceName}`).slice(0, 5).join('\n')}${authorResources.length > 5 ? `\n... and ${authorResources.length - 5} more` : ''}\n\nWould you like me to filter by this author?`,
+                            actions: [
+                                { type: 'filter', filter: 'authors', values: [foundAuthor] }
+                            ]
+                        };
+                    }
+
+                    return {
+                        message: `👥 **Available Authors:**\n\n${uniqueAuthors.map(author => `• ${author}`).join('\n')}\n\nYou can filter by any author using the sidebar. Who are you looking for?`,
+                        actions: []
+                    };
+                }
+
+                // Source questions
+                if (message.includes('govex') || message.includes('external') || message.includes('source')) {
+                    const govexCount = resources.filter(r => r.govexOrExternal === 'GovEx').length;
+                    const externalCount = resources.filter(r => r.govexOrExternal === 'External').length;
+
+                    if (message.includes('govex')) {
+                        return {
+                            message: `🏢 **GovEx Resources**: We have ${govexCount} resources created by GovEx. These include templates, guides, and tools developed internally.\n\nWould you like me to show only GovEx resources?`,
+                            actions: [
+                                { type: 'filter', filter: 'sources', values: ['GovEx'] }
+                            ]
+                        };
+                    }
+
+                    if (message.includes('external')) {
+                        return {
+                            message: `🌐 **External Resources**: We have ${externalCount} resources from external partners and organizations.\n\nWould you like me to show only external resources?`,
+                            actions: [
+                                { type: 'filter', filter: 'sources', values: ['External'] }
+                            ]
+                        };
+                    }
+
+                    return {
+                        message: `📚 **Resource Sources:**\n\n🏢 **GovEx**: ${govexCount} internal resources\n🌐 **External**: ${externalCount} partner resources\n\nWhich would you like to explore?`,
+                        actions: []
+                    };
+                }
+
+                // Language questions
+                if (message.includes('language') || message.includes('spanish') || message.includes('portuguese') || message.includes('italian')) {
+                    const multiLangResources = resources.filter(r =>
+                        [r.englishLink, r.spanishLink, r.portugueseLink, r.italianLink].filter(Boolean).length > 1
+                    );
+
+                    return {
+                        message: `🌐 **Multi-language Resources**: ${multiLangResources.length} resources are available in multiple languages.\n\n• **English**: All resources\n• **Spanish**: ${resources.filter(r => r.spanishLink).length} resources\n• **Portuguese**: ${resources.filter(r => r.portugueseLink).length} resources\n• **Italian**: ${resources.filter(r => r.italianLink).length} resources\n\nWhich language are you interested in?`,
+                        actions: []
+                    };
+                }
+
+                // Default response with suggestions
+                return {
+                    message: "I'm here to help! Here are some things you can ask me:\n\n🔍 **\"Find resources about [topic]\"**\n📊 **\"How many resources do we have?\"**\n➕ **\"How do I add a new resource?\"**\n🔽 **\"How do I filter resources?\"**\n👥 **\"Who are the authors?\"**\n🧭 **\"Help me navigate the dashboard\"**\n\nWhat would you like to know?",
+                    actions: []
+                };
+            };
+
+            const executeActions = (actions) => {
+                actions.forEach(action => {
+                    switch(action.type) {
+                        case 'filter':
+                            setSelectedFilters(prev => {
+                                const newFilters = { ...prev };
+                                if (action.filter === 'topics') {
+                                    action.values.forEach(value => {
+                                        newFilters.topics.add(value);
+                                    });
+                                } else if (action.filter === 'fileTypes') {
+                                    action.values.forEach(value => {
+                                        newFilters.fileTypes.add(value);
+                                    });
+                                } else if (action.filter === 'authors') {
+                                    action.values.forEach(value => {
+                                        newFilters.authors.add(value);
+                                    });
+                                } else if (action.filter === 'sources') {
+                                    action.values.forEach(value => {
+                                        newFilters.sources.add(value);
+                                    });
+                                }
+                                return newFilters;
+                            });
+                            break;
+                        case 'search':
+                            setSearchQuery(action.query);
+                            break;
+                        case 'action':
+                            if (action.action === 'openAddResource') {
+                                onClose(); // Close chatbot
+                                // This action will be handled by the parent component
+                                window.dispatchEvent(new CustomEvent('openAddResource'));
+                            }
+                            break;
+                    }
+                });
+            };
+
+            const handleSendMessage = async () => {
+                if (!inputMessage.trim()) return;
+
+                const userMessage = {
+                    id: Date.now(),
+                    type: 'user',
+                    message: inputMessage,
+                    timestamp: new Date()
+                };
+
+                setMessages(prev => [...prev, userMessage]);
+                setInputMessage('');
+                setIsTyping(true);
+
+                // Simulate AI thinking time
+                setTimeout(() => {
+                    const aiResponse = getAIResponse(inputMessage);
+
+                    const botMessage = {
+                        id: Date.now() + 1,
+                        type: 'bot',
+                        message: aiResponse.message,
+                        timestamp: new Date()
+                    };
+
+                    setMessages(prev => [...prev, botMessage]);
+                    setIsTyping(false);
+
+                    // Execute any actions
+                    if (aiResponse.actions && aiResponse.actions.length > 0) {
+                        executeActions(aiResponse.actions);
+                    }
+                }, 1000 + Math.random() * 1000);
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-end z-50 p-4">
+                    <div className="bg-[#161b22] border border-[#30363d] rounded-lg w-96 h-[600px] flex flex-col modal-content">
+                        {/* Header */}
+                        <div className="p-4 border-b border-[#30363d] flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-[#137fec] rounded-full flex items-center justify-center">
+                                    <Icon name="bot" className="text-white" size={18} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-medium text-[#e6edf3]">GovEx Assistant</h3>
+                                    <p className="text-xs text-[#8b949e]">AI-powered help</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={onClose}
+                                className="p-1 hover:bg-[#30363d] rounded transition-colors"
+                            >
+                                <Icon name="x" className="text-[#8b949e]" size={18} />
+                            </button>
+                        </div>
+
+                        {/* Messages */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {messages.map(message => (
+                                <div
+                                    key={message.id}
+                                    className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                                >
+                                    <div
+                                        className={`max-w-[80%] rounded-lg p-3 ${
+                                            message.type === 'user'
+                                                ? 'bg-[#137fec] text-white'
+                                                : 'bg-[#0d1117] text-[#e6edf3] border border-[#30363d]'
+                                        }`}
+                                    >
+                                        <div className="text-sm whitespace-pre-line">{message.message}</div>
+                                        <div className={`text-xs mt-1 opacity-70 ${
+                                            message.type === 'user' ? 'text-blue-100' : 'text-[#8b949e]'
+                                        }`}>
+                                            {message.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+
+                            {isTyping && (
+                                <div className="flex justify-start">
+                                    <div className="bg-[#0d1117] border border-[#30363d] rounded-lg p-3">
+                                        <div className="flex space-x-1">
+                                            <div className="w-2 h-2 bg-[#8b949e] rounded-full animate-bounce"></div>
+                                            <div className="w-2 h-2 bg-[#8b949e] rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                                            <div className="w-2 h-2 bg-[#8b949e] rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
+
+                        {/* Input */}
+                        <div className="p-4 border-t border-[#30363d]">
+                            <div className="flex space-x-2">
+                                <input
+                                    type="text"
+                                    value={inputMessage}
+                                    onChange={(e) => setInputMessage(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Ask me anything about the dashboard..."
+                                    className="flex-1 bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors text-sm"
+                                />
+                                <button
+                                    onClick={handleSendMessage}
+                                    disabled={!inputMessage.trim() || isTyping}
+                                    className="px-3 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#1c8fed] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Icon name="send" size={16} />
+                                </button>
+                            </div>
+                            <p className="text-xs text-[#8b949e] mt-2">
+                                Try asking: "Find data quality resources" or "How do I add a resource?"
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Program Management Modal
+        function ProgramManagementModal({ programs, setPrograms, onClose }) {
+            const [newProgramName, setNewProgramName] = useState('');
+            const [newProgramShortName, setNewProgramShortName] = useState('');
+            const [initialCohort, setInitialCohort] = useState('');
+            const [programColor, setProgramColor] = useState('#137fec');
+            const [addingCohortTo, setAddingCohortTo] = useState(null);
+            const [newCohortName, setNewCohortName] = useState('');
+
+            const addNewProgram = () => {
+                if (!newProgramName || !newProgramShortName || !initialCohort) return;
+
+                // TODO: Will connect to Google Sheets API
+                console.log("Adding new program:", newProgramName);
+
+                const newProgram = {
+                    id: Math.max(...programs.map(p => p.id)) + 1,
+                    name: newProgramName,
+                    shortName: newProgramShortName,
+                    cohorts: [{
+                        id: 1,
+                        name: initialCohort,
+                        active: true
+                    }],
+                    color: programColor
+                };
+
+                setPrograms([...programs, newProgram]);
+                setNewProgramName('');
+                setNewProgramShortName('');
+                setInitialCohort('');
+                setProgramColor('#137fec');
+            };
+
+            const addCohortToProgram = (programId) => {
+                if (!newCohortName) return;
+
+                // TODO: Will connect to Google Sheets API
+                console.log("Adding cohort:", newCohortName, "to program:", programId);
+
+                setPrograms(programs.map(program => {
+                    if (program.id === programId) {
+                        const maxCohortId = Math.max(...program.cohorts.map(c => c.id));
+                        return {
+                            ...program,
+                            cohorts: [...program.cohorts, {
+                                id: maxCohortId + 1,
+                                name: newCohortName,
+                                active: true
+                            }]
+                        };
+                    }
+                    return program;
+                }));
+
+                setNewCohortName('');
+                setAddingCohortTo(null);
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay">
+                    <div className="bg-[#161b22] border border-[#30363d] rounded-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto modal-content">
+                        <div className="p-6 border-b border-[#30363d]">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-semibold text-[#e6edf3]">Manage Programs & Cohorts</h2>
+                                <button onClick={onClose} className="p-1 hover:bg-[#30363d] rounded">
+                                    <Icon name="x" className="text-[#8b949e]" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-6">
+                            {/* Add New Program Form */}
+                            <div className="mb-6 p-4 bg-[#0d1117] rounded-lg">
+                                <h3 className="text-lg font-medium text-[#e6edf3] mb-4">Add New Program</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm text-[#8b949e] mb-1">Program Name</label>
+                                        <input
+                                            type="text"
+                                            value={newProgramName}
+                                            onChange={(e) => setNewProgramName(e.target.value)}
+                                            className="w-full bg-[#161b22] border border-[#30363d] rounded px-3 py-2 text-[#e6edf3] focus:outline-none focus:border-[#137fec]"
+                                            placeholder="e.g., Data Analytics Program"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm text-[#8b949e] mb-1">Short Name</label>
+                                            <input
+                                                type="text"
+                                                value={newProgramShortName}
+                                                onChange={(e) => setNewProgramShortName(e.target.value)}
+                                                className="w-full bg-[#161b22] border border-[#30363d] rounded px-3 py-2 text-[#e6edf3] focus:outline-none focus:border-[#137fec]"
+                                                placeholder="e.g., DAP"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-[#8b949e] mb-1">Initial Cohort</label>
+                                            <input
+                                                type="text"
+                                                value={initialCohort}
+                                                onChange={(e) => setInitialCohort(e.target.value)}
+                                                className="w-full bg-[#161b22] border border-[#30363d] rounded px-3 py-2 text-[#e6edf3] focus:outline-none focus:border-[#137fec]"
+                                                placeholder="e.g., Cohort 1"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-[#8b949e] mb-1">Program Color</label>
+                                        <div className="flex items-center space-x-2">
+                                            <input
+                                                type="color"
+                                                value={programColor}
+                                                onChange={(e) => setProgramColor(e.target.value)}
+                                                className="h-10 w-20 bg-[#161b22] border border-[#30363d] rounded cursor-pointer"
+                                            />
+                                            <span className="text-[#e6edf3]">{programColor}</span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={addNewProgram}
+                                        className="w-full px-4 py-2 bg-[#137fec] text-white rounded hover:bg-[#1c8fed] transition-colors"
+                                    >
+                                        Add Program
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Existing Programs */}
+                            <div>
+                                <h3 className="text-lg font-medium text-[#e6edf3] mb-4">Existing Programs</h3>
+                                <div className="space-y-3">
+                                    {programs.map(program => (
+                                        <div key={program.id} className="p-4 bg-[#0d1117] rounded-lg">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center space-x-3">
+                                                    <div
+                                                        className="w-4 h-4 rounded"
+                                                        style={{ backgroundColor: program.color }}
+                                                    ></div>
+                                                    <h4 className="text-[#e6edf3] font-medium">{program.name}</h4>
+                                                    <span className="text-xs text-[#8b949e]">({program.shortName})</span>
+                                                </div>
+                                                {addingCohortTo !== program.id && (
+                                                    <button
+                                                        onClick={() => setAddingCohortTo(program.id)}
+                                                        className="px-3 py-1 text-sm bg-[#30363d] text-[#137fec] rounded hover:bg-[#484f58] transition-colors"
+                                                    >
+                                                        Add Cohort
+                                                    </button>
+                                                )}
+                                            </div>
+                                            {addingCohortTo === program.id && (
+                                                <div className="mb-3 flex items-center space-x-2">
+                                                    <input
+                                                        type="text"
+                                                        value={newCohortName}
+                                                        onChange={(e) => setNewCohortName(e.target.value)}
+                                                        placeholder="Cohort name"
+                                                        className="flex-1 bg-[#161b22] border border-[#30363d] rounded px-3 py-1 text-[#e6edf3] text-sm focus:outline-none focus:border-[#137fec]"
+                                                    />
+                                                    <button
+                                                        onClick={() => addCohortToProgram(program.id)}
+                                                        className="px-3 py-1 text-sm bg-[#137fec] text-white rounded hover:bg-[#1c8fed]"
+                                                    >
+                                                        Add
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {setAddingCohortTo(null); setNewCohortName('');}}
+                                                        className="px-3 py-1 text-sm bg-[#30363d] text-[#8b949e] rounded hover:bg-[#484f58]"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <div className="flex flex-wrap gap-2">
+                                                {program.cohorts.map(cohort => (
+                                                    <span
+                                                        key={cohort.id}
+                                                        className={`px-2 py-1 text-xs rounded ${
+                                                            cohort.active
+                                                                ? 'bg-[#30363d] text-[#e6edf3]'
+                                                                : 'bg-[#161b22] text-[#8b949e] border border-[#30363d]'
+                                                        }`}
+                                                    >
+                                                        {cohort.name}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Main App Component
+        function App() {
+            const [currentUser, setCurrentUser] = useState(null);
+            const [data, setData] = useState(MOCK_DATABASE);
+            const [programs, setPrograms] = useState(MOCK_DATABASE.programs);
+            const [resources, setResources] = useState(MOCK_DATABASE.resources);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [selectedFilters, setSelectedFilters] = useState({
+                selectedCohorts: new Set(),
+                sources: new Set(),
+                fileTypes: new Set(),
+                fillableOnly: false,
+                topics: new Set(),
+                authors: new Set(),
+                languages: new Set(),
+                showRecent: true
+            });
+            const [expandedPrograms, setExpandedPrograms] = useState({});
+            const [showProgramModal, setShowProgramModal] = useState(false);
+            const [showResourceModal, setShowResourceModal] = useState(false);
+            const [showFileRequestModal, setShowFileRequestModal] = useState(false);
+            const [showStatsDropdown, setShowStatsDropdown] = useState(false);
+            const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
+
+            // Calculate resource counts for each program-cohort combination
+            const resourceCounts = useMemo(() => {
+                const counts = {};
+                resources.forEach(resource => {
+                    const key = `${resource.programId}-${resource.cohortId}`;
+                    counts[key] = (counts[key] || 0) + 1;
+                });
+                return counts;
+            }, [resources]);
+
+            // Filter resources based on selected filters and search
+            const filteredResources = useMemo(() => {
+                return resources.filter(resource => {
+                    // Search filter - now searches across multiple fields
+                    if (searchQuery) {
+                        const query = searchQuery.toLowerCase();
+                        const searchableFields = [
+                            resource.resourceName,
+                            resource.description,
+                            ...(resource.topics || []),
+                            ...(resource.authors || []),
+                            ...(resource.programsUsed || []),
+                            resource.fileType
+                        ].join(' ').toLowerCase();
+
+                        if (!searchableFields.includes(query)) {
+                            return false;
+                        }
+                    }
+
+                    // Program/Cohort filter - now supports many-to-many relationship
+                    if (selectedFilters.selectedCohorts.size > 0) {
+                        const hasMatchingProgram = resource.programsUsed?.some(programCode => {
+                            // Convert program codes back to program/cohort IDs for filtering
+                            return programs.some(program => {
+                                return program.cohorts.some(cohort => {
+                                    const expectedCode = `${program.shortName}${cohort.id}`;
+                                    const key = `${program.id}-${cohort.id}`;
+                                    return expectedCode === programCode && selectedFilters.selectedCohorts.has(key);
+                                });
+                            });
+                        });
+                        if (!hasMatchingProgram) {
+                            return false;
+                        }
+                    }
+
+                    // Source filter
+                    if (selectedFilters.sources.size > 0) {
+                        if (!selectedFilters.sources.has(resource.govexOrExternal)) {
+                            return false;
+                        }
+                    }
+
+                    // File type filter
+                    if (selectedFilters.fileTypes.size > 0) {
+                        if (!selectedFilters.fileTypes.has(resource.fileType)) {
+                            return false;
+                        }
+                    }
+
+                    // Fillable filter
+                    if (selectedFilters.fillableOnly) {
+                        if (!resource.fillable) {
+                            return false;
+                        }
+                    }
+
+                    // Topics filter
+                    if (selectedFilters.topics.size > 0) {
+                        const hasMatchingTopic = resource.topics?.some(topic =>
+                            selectedFilters.topics.has(topic)
+                        );
+                        if (!hasMatchingTopic) {
+                            return false;
+                        }
+                    }
+
+                    // Authors filter
+                    if (selectedFilters.authors.size > 0) {
+                        const hasMatchingAuthor = resource.authors?.some(author =>
+                            selectedFilters.authors.has(author)
+                        );
+                        if (!hasMatchingAuthor) {
+                            return false;
+                        }
+                    }
+
+                    // Language availability filter
+                    if (selectedFilters.languages.size > 0) {
+                        const hasMatchingLanguage = selectedFilters.languages.has('english') && resource.englishLink ||
+                                                   selectedFilters.languages.has('spanish') && resource.spanishLink ||
+                                                   selectedFilters.languages.has('portuguese') && resource.portugueseLink ||
+                                                   selectedFilters.languages.has('italian') && resource.italianLink;
+                        if (!hasMatchingLanguage) {
+                            return false;
+                        }
+                    }
+
+                    // Year filter
+                    if (selectedFilters.showRecent) {
+                        if (resource.createdYear < 2024) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
+            }, [resources, searchQuery, selectedFilters, programs]);
+
+            const toggleFavorite = (resourceId) => {
+                setResources(resources.map(r =>
+                    r.id === resourceId ? { ...r, isFavorite: !r.isFavorite } : r
+                ));
+            };
+
+            const handleAddResource = (newResource) => {
+                // TODO: Will connect to Google Sheets API
+                console.log("Adding new resource:", newResource);
+
+                const updatedResources = [...resources, newResource];
+                setResources(updatedResources);
+
+                // Also save to localStorage for persistence in demo
+                localStorage.setItem('resources', JSON.stringify(updatedResources));
+            };
+
+            const handleFileRequest = (newRequest) => {
+                console.log("Adding new file request:", newRequest);
+
+                const updatedRequests = [...data.fileRequests, newRequest];
+
+                // Add activity entry for the new request
+                const newActivity = {
+                    id: Date.now() + Math.random(),
+                    type: "request_submitted",
+                    resource: newRequest.description.length > 50
+                        ? `${newRequest.description.substring(0, 50)}...`
+                        : newRequest.description,
+                    requestId: newRequest.id,
+                    user: currentUser.name,
+                    timestamp: "just now",
+                    description: "New file request submitted"
+                };
+
+                const updatedActivity = [newActivity, ...data.recentActivity];
+
+                setData(prev => ({
+                    ...prev,
+                    fileRequests: updatedRequests,
+                    recentActivity: updatedActivity
+                }));
+
+                // Also save to localStorage for persistence in demo
+                localStorage.setItem('fileRequests', JSON.stringify(updatedRequests));
+                localStorage.setItem('recentActivity', JSON.stringify(updatedActivity));
+            };
+
+            const handleLogin = (user) => {
+                setCurrentUser(user);
+                localStorage.setItem('govex_user', JSON.stringify(user));
+            };
+
+            const handleLogout = () => {
+                setCurrentUser(null);
+                localStorage.removeItem('govex_user');
+            };
+
+            const handleQuickAccess = (action) => {
+                switch(action) {
+                    case 'recent':
+                        setSelectedFilters(prev => ({ ...prev, showRecent: true }));
+                        break;
+                    case 'requests':
+                        alert('File requests view - Coming soon!');
+                        break;
+                    case 'gaps':
+                        alert('Gap analysis - Coming soon!');
+                        break;
+                    case 'manage':
+                        setShowProgramModal(true);
+                        break;
+                }
+            };
+
+
+            useEffect(() => {
+                // Check for saved user session
+                const savedUser = localStorage.getItem('govex_user');
+                if (savedUser) {
+                    setCurrentUser(JSON.parse(savedUser));
+                }
+
+                // TODO: Fetch data from Google Sheets on component mount
+                fetchDataFromGoogleSheets().then(setData);
+            }, []);
+
+            // Show login page if no user is logged in
+            if (!currentUser) {
+                return <LoginPage onLogin={handleLogin} />;
+            }
+
+            return (
+                <div className="min-h-screen bg-[#0d1117] flex flex-col">
+                    <Header
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        hasNotifications={true}
+                        currentUser={currentUser}
+                        onLogout={handleLogout}
+                        onFileRequest={() => setShowFileRequestModal(true)}
+                        showStatsDropdown={showStatsDropdown}
+                        setShowStatsDropdown={setShowStatsDropdown}
+                        showRequestsDropdown={showRequestsDropdown}
+                        setShowRequestsDropdown={setShowRequestsDropdown}
+                        fileRequests={data.fileRequests}
+                        resources={resources}
+                        programs={programs}
+                        recentActivity={data.recentActivity}
+                    />
+
+                    <div className="flex flex-1 overflow-hidden">
+                        <Sidebar
+                            programs={programs}
+                            resources={resources}
+                            selectedFilters={selectedFilters}
+                            setSelectedFilters={setSelectedFilters}
+                            expandedPrograms={expandedPrograms}
+                            setExpandedPrograms={setExpandedPrograms}
+                            setShowProgramModal={setShowProgramModal}
+                            resourceCounts={resourceCounts}
+                        />
+
+                        <main className="flex-1 overflow-y-auto p-6">
+                            <div className="mb-6 flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-2xl font-semibold text-[#e6edf3]">Resources</h2>
+                                    <p className="text-[#8b949e] mt-1">
+                                        Showing {filteredResources.length} of {resources.length} resources
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowResourceModal(true)}
+                                    className="px-4 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#1c8fed] transition-colors flex items-center space-x-2"
+                                >
+                                    <Icon name="plus" size={16} />
+                                    <span>Add Resource</span>
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {filteredResources.map(resource => (
+                                    <ResourceCard
+                                        key={resource.id}
+                                        resource={resource}
+                                        programs={programs}
+                                        onToggleFavorite={toggleFavorite}
+                                    />
+                                ))}
+                            </div>
+
+                            {filteredResources.length === 0 && (
+                                <div className="text-center py-12">
+                                    <Icon name="inbox" className="mx-auto text-[#8b949e] mb-4" size={48} />
+                                    <h3 className="text-lg font-medium text-[#e6edf3] mb-2">No resources found</h3>
+                                    <p className="text-[#8b949e]">Try adjusting your filters or search query</p>
+                                </div>
+                            )}
+                        </main>
+
+                        <DemoChatbot
+                            resources={resources}
+                            programs={programs}
+                            setSelectedFilters={setSelectedFilters}
+                            setSearchQuery={setSearchQuery}
+                        />
+                    </div>
+
+                    {showProgramModal && (
+                        <ProgramManagementModal
+                            programs={programs}
+                            setPrograms={setPrograms}
+                            onClose={() => setShowProgramModal(false)}
+                        />
+                    )}
+
+                    {showResourceModal && (
+                        <AddResourceModal
+                            programs={programs}
+                            resources={resources}
+                            onAddResource={handleAddResource}
+                            onClose={() => setShowResourceModal(false)}
+                        />
+                    )}
+
+                    {showFileRequestModal && (
+                        <FileRequestModal
+                            programs={programs}
+                            fileRequests={data.fileRequests}
+                            onSubmitRequest={handleFileRequest}
+                            onClose={() => setShowFileRequestModal(false)}
+                        />
+                    )}
+
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
