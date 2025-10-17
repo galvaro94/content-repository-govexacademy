@@ -494,6 +494,184 @@
             ]
         };
 
+        // Bulk User Upload Configuration
+        const bulkUserUploadConfig = {
+            maxRows: 10000,
+            batchSize: 100,
+            allowedDomains: [], // e.g., ["city.gov", "partner.org"]
+            blockUnknownDomains: false,
+            defaultRole: "Researcher",
+            featureFlag: "enableBulkUserUpload",
+            inviteEmailsDefault: true,
+            supportedFileTypes: ['.csv', '.xlsx'],
+            maxFileSize: 10 * 1024 * 1024 // 10MB
+        };
+
+        // Mock data for bulk upload testing
+        const mockExistingUsers = ['john.smith@govex.org', 'jane.doe@govex.org', 'admin@govex.org', 'admin@govex.com'];
+
+        const availableRoles = ['Administrator', 'Program Manager', 'Data Analyst', 'Research Director', 'Analyst', 'Coordinator', 'Researcher', 'Project Manager', 'Senior Data Analyst'];
+
+        // Bulk Upload Helper Functions
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email.toLowerCase().trim());
+        }
+
+        function normalizeEmail(email) {
+            return email.toLowerCase().trim();
+        }
+
+        function validateDomain(email, allowedDomains) {
+            if (!allowedDomains || allowedDomains.length === 0) return true;
+            const domain = email.split('@')[1];
+            return allowedDomains.includes(domain);
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            if (lines.length < 2) throw new Error('CSV must have at least a header row and one data row');
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const rows = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index] || '';
+                });
+                rows.push(row);
+            }
+
+            return { headers, rows };
+        }
+
+        async function parseSpreadsheet(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const text = e.target.result;
+                        const result = parseCSV(text);
+                        resolve(result);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
+            });
+        }
+
+        async function previewImport(rows, mapping, config) {
+            await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
+
+            const previews = [];
+            const emailsSeen = new Set();
+
+            for (const row of rows) {
+                const email = normalizeEmail(row[mapping.email] || '');
+                const firstName = row[mapping.firstName] || '';
+                const lastName = row[mapping.lastName] || '';
+                const role = row[mapping.role] || config.defaultRole;
+                const department = row[mapping.department] || '';
+                const notes = row[mapping.notes] || '';
+
+                let status = 'ready';
+                let error = '';
+
+                // Validate email
+                if (!email) {
+                    status = 'invalid_email';
+                    error = 'Email is required';
+                } else if (!validateEmail(email)) {
+                    status = 'invalid_email';
+                    error = 'Invalid email format';
+                } else if (emailsSeen.has(email)) {
+                    status = 'duplicate_in_file';
+                    error = 'Duplicate email in file';
+                } else if (mockExistingUsers.includes(email)) {
+                    status = 'already_exists';
+                    error = 'User already exists';
+                } else if (bulkUserUploadConfig.allowedDomains.length > 0 && !validateDomain(email, bulkUserUploadConfig.allowedDomains)) {
+                    status = 'disallowed_domain';
+                    error = 'Domain not allowed';
+                } else if (!availableRoles.includes(role)) {
+                    status = 'invalid_role';
+                    error = `Invalid role: ${role}`;
+                }
+
+                emailsSeen.add(email);
+
+                previews.push({
+                    email,
+                    firstName,
+                    lastName,
+                    role,
+                    department,
+                    notes,
+                    status,
+                    error
+                });
+            }
+
+            return previews;
+        }
+
+        async function runUserImport(payload) {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
+
+            const result = {
+                importId: Date.now().toString(),
+                created: 0,
+                invited: 0,
+                skipped: 0,
+                errors: [],
+                processed: 0,
+                total: payload.rows.length,
+                queued: false
+            };
+
+            for (const row of payload.rows) {
+                result.processed++;
+
+                if (payload.dryRun) {
+                    // Dry run - just count what would happen
+                    if (validateEmail(row.email) && !mockExistingUsers.includes(normalizeEmail(row.email))) {
+                        result.created++;
+                        if (payload.sendInviteEmails) {
+                            result.invited++;
+                        }
+                    } else {
+                        result.skipped++;
+                    }
+                } else {
+                    // Real run - would actually create users
+                    if (validateEmail(row.email) && !mockExistingUsers.includes(normalizeEmail(row.email))) {
+                        // In real implementation, would create user here
+                        result.created++;
+                        if (payload.sendInviteEmails) {
+                            result.invited++;
+                        }
+                        // Add to mock existing users to prevent duplicates in future runs
+                        mockExistingUsers.push(normalizeEmail(row.email));
+                    } else {
+                        result.skipped++;
+                        result.errors.push({
+                            email: row.email,
+                            error: 'Invalid email or user already exists'
+                        });
+                    }
+                }
+            }
+
+            return result;
+        }
+
         // Search Configuration
         const searchConfig = {
             debounceMs: 250,
@@ -1374,8 +1552,605 @@
             );
         }
 
+        // BulkUploadCard Component for Settings
+        function BulkUploadCard({ currentUser, onClose }) {
+            const [step, setStep] = useState(1); // 1: Upload, 2: Map, 3: Preview, 4: Import, 5: Results
+            const [file, setFile] = useState(null);
+            const [data, setData] = useState(null);
+            const [mapping, setMapping] = useState({});
+            const [preview, setPreview] = useState([]);
+            const [dryRun, setDryRun] = useState(true);
+            const [sendEmails, setSendEmails] = useState(bulkUserUploadConfig.inviteEmailsDefault);
+            const [defaultRole, setDefaultRole] = useState(bulkUserUploadConfig.defaultRole);
+            const [loading, setLoading] = useState(false);
+            const [result, setResult] = useState(null);
+            const [error, setError] = useState('');
+
+            const fileInputRef = useRef(null);
+
+            // Check if user has admin permissions
+            const hasPermission = currentUser?.role === 'Administrator';
+
+            if (!hasPermission) {
+                return (
+                    <div className="p-6 text-center">
+                        <Icon name="shield-x" className="mx-auto text-[#f85149] mb-4" size={48} />
+                        <h3 className="text-lg font-medium text-[#e6edf3] mb-2">Access Denied</h3>
+                        <p className="text-[#8b949e]">You need Administrator permissions to access bulk user upload.</p>
+                    </div>
+                );
+            }
+
+            if (!bulkUserUploadConfig.featureFlag) {
+                return (
+                    <div className="p-6 text-center">
+                        <Icon name="toggle-left" className="mx-auto text-[#8b949e] mb-4" size={48} />
+                        <h3 className="text-lg font-medium text-[#e6edf3] mb-2">Feature Disabled</h3>
+                        <p className="text-[#8b949e]">Bulk user upload is currently disabled.</p>
+                    </div>
+                );
+            }
+
+            const handleFileSelect = async (selectedFile) => {
+                setError('');
+                setFile(selectedFile);
+
+                // Validate file
+                if (selectedFile.size > bulkUserUploadConfig.maxFileSize) {
+                    setError('File too large. Maximum size is 10MB.');
+                    return;
+                }
+
+                const fileExt = '.' + selectedFile.name.split('.').pop().toLowerCase();
+                if (!bulkUserUploadConfig.supportedFileTypes.includes(fileExt)) {
+                    setError('Unsupported file type. Please upload a CSV file.');
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const parsed = await parseSpreadsheet(selectedFile);
+                    setData(parsed);
+
+                    // Auto-detect column mapping
+                    const autoMapping = {};
+                    const headerLower = parsed.headers.map(h => h.toLowerCase());
+
+                    // Try to match common column names
+                    const mappings = {
+                        email: ['email', 'email address', 'e-mail'],
+                        firstName: ['first name', 'firstname', 'given name', 'name'],
+                        lastName: ['last name', 'lastname', 'surname', 'family name'],
+                        role: ['role', 'position', 'title', 'job title'],
+                        department: ['department', 'dept', 'division', 'team'],
+                        notes: ['notes', 'comments', 'remarks']
+                    };
+
+                    Object.entries(mappings).forEach(([field, candidates]) => {
+                        for (const candidate of candidates) {
+                            const index = headerLower.indexOf(candidate);
+                            if (index !== -1) {
+                                autoMapping[field] = parsed.headers[index];
+                                break;
+                            }
+                        }
+                    });
+
+                    setMapping(autoMapping);
+                    setStep(2);
+                } catch (err) {
+                    setError('Failed to parse file: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleDrop = (e) => {
+                e.preventDefault();
+                const droppedFiles = Array.from(e.dataFiles || e.target.files);
+                if (droppedFiles.length > 0) {
+                    handleFileSelect(droppedFiles[0]);
+                }
+            };
+
+            const generatePreview = async () => {
+                if (!mapping.email) {
+                    setError('Email column mapping is required');
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const previews = await previewImport(data.rows, mapping, { defaultRole });
+                    setPreview(previews);
+                    setStep(3);
+                } catch (err) {
+                    setError('Failed to generate preview: ' + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const executeImport = async () => {
+                const readyRows = preview.filter(p => p.status === 'ready');
+                if (readyRows.length === 0) {
+                    setError('No valid rows to import');
+                    return;
+                }
+
+                setLoading(true);
+                setStep(4);
+
+                try {
+                    const importResult = await runUserImport({
+                        rows: readyRows,
+                        dryRun,
+                        defaultRole,
+                        sendInviteEmails: sendEmails,
+                        batchSize: bulkUserUploadConfig.batchSize
+                    });
+
+                    setResult(importResult);
+                    setStep(5);
+                } catch (err) {
+                    setError('Import failed: ' + err.message);
+                    setStep(3);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const downloadErrorReport = () => {
+                const errorRows = preview.filter(p => p.status !== 'ready');
+                const csvContent = 'Email,Error,Status\n' +
+                    errorRows.map(row => `"${row.email}","${row.error}","${row.status}"`).join('\n');
+
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'bulk_upload_errors.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            };
+
+            const downloadReceipt = () => {
+                if (!result) return;
+
+                const csvContent = `Import Receipt
+Import ID: ${result.importId}
+Date: ${new Date().toISOString()}
+Total Processed: ${result.total}
+Created: ${result.created}
+Invited: ${result.invited}
+Skipped: ${result.skipped}
+Errors: ${result.errors.length}
+Dry Run: ${dryRun ? 'Yes' : 'No'}
+
+Errors:
+${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
+
+                const blob = new Blob([csvContent], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `bulk_upload_receipt_${result.importId}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            };
+
+            const getStatusBadge = (status) => {
+                const badges = {
+                    ready: 'bg-green-500 text-white',
+                    invalid_email: 'bg-red-500 text-white',
+                    duplicate_in_file: 'bg-yellow-500 text-black',
+                    already_exists: 'bg-blue-500 text-white',
+                    disallowed_domain: 'bg-purple-500 text-white',
+                    invalid_role: 'bg-orange-500 text-white'
+                };
+                return badges[status] || 'bg-gray-500 text-white';
+            };
+
+            const getStatusLabel = (status) => {
+                const labels = {
+                    ready: 'Ready',
+                    invalid_email: 'Invalid Email',
+                    duplicate_in_file: 'Duplicate',
+                    already_exists: 'Exists',
+                    disallowed_domain: 'Domain Blocked',
+                    invalid_role: 'Invalid Role'
+                };
+                return labels[status] || status;
+            };
+
+            const summaryCounts = preview.reduce((acc, p) => {
+                acc[p.status] = (acc[p.status] || 0) + 1;
+                return acc;
+            }, {});
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-[#161b22] border border-[#30363d] rounded-lg shadow-lg w-full max-w-6xl max-h-[95vh] overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-[#30363d]">
+                            <div>
+                                <h2 className="text-xl font-semibold text-[#e6edf3]">Bulk User Upload</h2>
+                                <p className="text-sm text-[#8b949e] mt-1">Upload spreadsheet to create user accounts</p>
+                            </div>
+                            <button onClick={onClose} className="p-2 hover:bg-[#30363d] rounded transition-colors">
+                                <Icon name="x" className="text-[#8b949e]" size={20} />
+                            </button>
+                        </div>
+
+                        {/* Progress Steps */}
+                        <div className="px-6 py-4 bg-[#0d1117] border-b border-[#30363d]">
+                            <div className="flex items-center space-x-8">
+                                {[
+                                    { num: 1, label: 'Upload', icon: 'upload' },
+                                    { num: 2, label: 'Map Columns', icon: 'columns' },
+                                    { num: 3, label: 'Preview', icon: 'eye' },
+                                    { num: 4, label: 'Import', icon: 'play' },
+                                    { num: 5, label: 'Results', icon: 'check-circle' }
+                                ].map((s) => (
+                                    <div key={s.num} className={`flex items-center space-x-2 ${step >= s.num ? 'text-[#137fec]' : 'text-[#8b949e]'}`}>
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                                            step >= s.num ? 'border-[#137fec] bg-[#137fec] bg-opacity-20' : 'border-[#30363d]'
+                                        }`}>
+                                            {step > s.num ? (
+                                                <Icon name="check" size={16} />
+                                            ) : (
+                                                <span className="text-xs font-medium">{s.num}</span>
+                                            )}
+                                        </div>
+                                        <span className="text-sm font-medium">{s.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 overflow-y-auto max-h-[calc(95vh-200px)]">
+                            {error && (
+                                <div className="mb-4 p-4 bg-[#f85149] bg-opacity-10 border border-[#f85149] rounded-lg">
+                                    <p className="text-[#f85149] text-sm">{error}</p>
+                                </div>
+                            )}
+
+                            {/* Step 1: Upload */}
+                            {step === 1 && (
+                                <div className="space-y-6">
+                                    <div
+                                        className="border-2 border-dashed border-[#30363d] rounded-lg p-12 text-center hover:border-[#137fec] transition-colors cursor-pointer"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        onDrop={handleDrop}
+                                        onDragOver={(e) => e.preventDefault()}
+                                    >
+                                        <Icon name="upload-cloud" className="mx-auto text-[#8b949e] mb-4" size={48} />
+                                        <h3 className="text-lg font-medium text-[#e6edf3] mb-2">
+                                            {loading ? 'Processing file...' : 'Upload Spreadsheet'}
+                                        </h3>
+                                        <p className="text-[#8b949e] mb-4">
+                                            Drag and drop a CSV file, or click to browse
+                                        </p>
+                                        <p className="text-xs text-[#8b949e]">
+                                            Supported: CSV files up to 10MB, max {bulkUserUploadConfig.maxRows.toLocaleString()} rows
+                                        </p>
+                                        {loading && (
+                                            <div className="mt-4">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#137fec] border-t-transparent mx-auto"></div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".csv,.xlsx"
+                                        onChange={(e) => e.target.files[0] && handleFileSelect(e.target.files[0])}
+                                        className="hidden"
+                                    />
+
+                                    <div className="bg-[#0d1117] rounded-lg p-4">
+                                        <h4 className="text-sm font-medium text-[#e6edf3] mb-2">Expected CSV Format:</h4>
+                                        <div className="text-xs text-[#8b949e] space-y-1">
+                                            <div><strong>Required:</strong> Email</div>
+                                            <div><strong>Optional:</strong> First Name, Last Name, Role, Department, Notes</div>
+                                            <div className="mt-2 text-[#f85149]"><strong>Example:</strong></div>
+                                            <code className="block mt-1 p-2 bg-[#161b22] rounded text-[#e6edf3]">
+                                                Email,First Name,Last Name,Role{'\n'}
+                                                user1@city.gov,John,Doe,Data Analyst{'\n'}
+                                                user2@city.gov,Jane,Smith,Researcher
+                                            </code>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 2: Map Columns */}
+                            {step === 2 && data && (
+                                <div className="space-y-6">
+                                    <div>
+                                        <h3 className="text-lg font-medium text-[#e6edf3] mb-2">Map Columns</h3>
+                                        <p className="text-[#8b949e] text-sm">
+                                            Map your spreadsheet columns to user fields. Found {data.rows.length} rows to process.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {[
+                                            { key: 'email', label: 'Email', required: true },
+                                            { key: 'firstName', label: 'First Name', required: false },
+                                            { key: 'lastName', label: 'Last Name', required: false },
+                                            { key: 'role', label: 'Role', required: false },
+                                            { key: 'department', label: 'Department', required: false },
+                                            { key: 'notes', label: 'Notes', required: false }
+                                        ].map((field) => (
+                                            <div key={field.key}>
+                                                <label className="block text-sm font-medium text-[#e6edf3] mb-2">
+                                                    {field.label} {field.required && <span className="text-[#f85149]">*</span>}
+                                                </label>
+                                                <select
+                                                    value={mapping[field.key] || ''}
+                                                    onChange={(e) => setMapping(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                                    className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] focus:outline-none focus:border-[#137fec]"
+                                                >
+                                                    <option value="">-- Select Column --</option>
+                                                    {data.headers.map(header => (
+                                                        <option key={header} value={header}>{header}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="bg-[#0d1117] rounded-lg p-4">
+                                        <h4 className="text-sm font-medium text-[#e6edf3] mb-2">Default Settings</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-[#e6edf3] mb-2">Default Role</label>
+                                                <select
+                                                    value={defaultRole}
+                                                    onChange={(e) => setDefaultRole(e.target.value)}
+                                                    className="w-full bg-[#161b22] border border-[#30363d] rounded-lg px-3 py-2 text-[#e6edf3] focus:outline-none focus:border-[#137fec]"
+                                                >
+                                                    {availableRoles.map(role => (
+                                                        <option key={role} value={role}>{role}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex space-x-4">
+                                        <button
+                                            onClick={() => setStep(1)}
+                                            className="px-4 py-2 border border-[#30363d] text-[#e6edf3] rounded-lg hover:bg-[#30363d] transition-colors"
+                                        >
+                                            Back
+                                        </button>
+                                        <button
+                                            onClick={generatePreview}
+                                            disabled={!mapping.email || loading}
+                                            className="px-4 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#1c8fed] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {loading ? 'Generating Preview...' : 'Generate Preview'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 3: Preview */}
+                            {step === 3 && preview.length > 0 && (
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h3 className="text-lg font-medium text-[#e6edf3] mb-2">Preview & Validation</h3>
+                                            <p className="text-[#8b949e] text-sm">
+                                                Review the processed data before importing
+                                            </p>
+                                        </div>
+                                        <div className="flex space-x-2">
+                                            {Object.entries(summaryCounts).map(([status, count]) => (
+                                                <div key={status} className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadge(status)}`}>
+                                                    {getStatusLabel(status)}: {count}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Settings */}
+                                    <div className="bg-[#0d1117] rounded-lg p-4">
+                                        <h4 className="text-sm font-medium text-[#e6edf3] mb-3">Import Settings</h4>
+                                        <div className="flex items-center space-x-6">
+                                            <label className="flex items-center space-x-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={dryRun}
+                                                    onChange={(e) => setDryRun(e.target.checked)}
+                                                    className="rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                                />
+                                                <span className="text-[#e6edf3] text-sm">Dry Run (recommended)</span>
+                                            </label>
+                                            <label className="flex items-center space-x-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={sendEmails}
+                                                    onChange={(e) => setSendEmails(e.target.checked)}
+                                                    className="rounded border-[#30363d] bg-[#0d1117] text-[#137fec] focus:ring-[#137fec]"
+                                                />
+                                                <span className="text-[#e6edf3] text-sm">Send Invite Emails</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* Preview Table */}
+                                    <div className="bg-[#0d1117] rounded-lg overflow-hidden">
+                                        <div className="max-h-64 overflow-y-auto">
+                                            <table className="w-full">
+                                                <thead className="bg-[#161b22] sticky top-0">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase">Status</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase">Email</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase">Name</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase">Role</th>
+                                                        <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase">Error</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-[#30363d]">
+                                                    {preview.map((row, index) => (
+                                                        <tr key={index} className="hover:bg-[#161b22]">
+                                                            <td className="px-4 py-3">
+                                                                <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadge(row.status)}`}>
+                                                                    {getStatusLabel(row.status)}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-sm text-[#e6edf3]">{row.email}</td>
+                                                            <td className="px-4 py-3 text-sm text-[#e6edf3]">
+                                                                {[row.firstName, row.lastName].filter(Boolean).join(' ') || '—'}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-sm text-[#e6edf3]">{row.role}</td>
+                                                            <td className="px-4 py-3 text-sm text-[#f85149]">{row.error || '—'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={() => setStep(2)}
+                                                className="px-4 py-2 border border-[#30363d] text-[#e6edf3] rounded-lg hover:bg-[#30363d] transition-colors"
+                                            >
+                                                Back
+                                            </button>
+                                            {Object.keys(summaryCounts).some(s => s !== 'ready') && (
+                                                <button
+                                                    onClick={downloadErrorReport}
+                                                    className="px-4 py-2 border border-[#f85149] text-[#f85149] rounded-lg hover:bg-[#f85149] hover:text-white transition-colors"
+                                                >
+                                                    Download Error Report
+                                                </button>
+                                            )}
+                                        </div>
+                                        <button
+                                            onClick={executeImport}
+                                            disabled={!summaryCounts.ready || loading}
+                                            className="px-4 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#1c8fed] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {dryRun ? 'Run Dry Import' : 'Run Import'} ({summaryCounts.ready || 0} users)
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 4: Import Progress */}
+                            {step === 4 && (
+                                <div className="text-center space-y-6">
+                                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#137fec] border-t-transparent mx-auto"></div>
+                                    <div>
+                                        <h3 className="text-lg font-medium text-[#e6edf3] mb-2">
+                                            {dryRun ? 'Running Dry Import...' : 'Creating Users...'}
+                                        </h3>
+                                        <p className="text-[#8b949e]">
+                                            Processing {preview.filter(p => p.status === 'ready').length} users
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 5: Results */}
+                            {step === 5 && result && (
+                                <div className="space-y-6">
+                                    <div className="text-center">
+                                        <Icon name="check-circle" className="mx-auto text-green-500 mb-4" size={64} />
+                                        <h3 className="text-xl font-medium text-[#e6edf3] mb-2">
+                                            {dryRun ? 'Dry Run Complete' : 'Import Complete'}
+                                        </h3>
+                                        <p className="text-[#8b949e]">
+                                            {dryRun ? 'No users were actually created' : 'Users have been successfully processed'}
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-[#0d1117] rounded-lg p-6">
+                                        <h4 className="text-lg font-medium text-[#e6edf3] mb-4">Import Summary</h4>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <div className="text-center">
+                                                <div className="text-2xl font-bold text-green-500">{result.created}</div>
+                                                <div className="text-sm text-[#8b949e]">{dryRun ? 'Would Create' : 'Created'}</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-2xl font-bold text-blue-500">{result.invited}</div>
+                                                <div className="text-sm text-[#8b949e]">{dryRun ? 'Would Invite' : 'Invited'}</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-2xl font-bold text-yellow-500">{result.skipped}</div>
+                                                <div className="text-sm text-[#8b949e]">Skipped</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-2xl font-bold text-red-500">{result.errors.length}</div>
+                                                <div className="text-sm text-[#8b949e]">Errors</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {result.errors.length > 0 && (
+                                        <div className="bg-[#f85149] bg-opacity-10 border border-[#f85149] rounded-lg p-4">
+                                            <h5 className="text-sm font-medium text-[#f85149] mb-2">Errors ({result.errors.length})</h5>
+                                            <div className="text-xs text-[#f85149] max-h-32 overflow-y-auto">
+                                                {result.errors.map((error, index) => (
+                                                    <div key={index}>{error.email}: {error.error}</div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center justify-between">
+                                        <button
+                                            onClick={downloadReceipt}
+                                            className="px-4 py-2 border border-[#30363d] text-[#e6edf3] rounded-lg hover:bg-[#30363d] transition-colors"
+                                        >
+                                            <Icon name="download" className="mr-2" size={16} />
+                                            Download Receipt
+                                        </button>
+                                        <div className="space-x-2">
+                                            <button
+                                                onClick={() => {
+                                                    setStep(1);
+                                                    setFile(null);
+                                                    setData(null);
+                                                    setMapping({});
+                                                    setPreview([]);
+                                                    setResult(null);
+                                                    setError('');
+                                                }}
+                                                className="px-4 py-2 border border-[#30363d] text-[#e6edf3] rounded-lg hover:bg-[#30363d] transition-colors"
+                                            >
+                                                Import Another File
+                                            </button>
+                                            <button
+                                                onClick={onClose}
+                                                className="px-4 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#1c8fed] transition-colors"
+                                            >
+                                                Done
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         // Header Component
-        function Header({ searchQuery, setSearchQuery, hasNotifications, currentUser, onLogout, onFileRequest, showStatsDropdown, setShowStatsDropdown, showRequestsDropdown, setShowRequestsDropdown, fileRequests, resources, programs, recentActivity }) {
+        function Header({ searchQuery, setSearchQuery, hasNotifications, currentUser, onLogout, onFileRequest, showStatsDropdown, setShowStatsDropdown, showRequestsDropdown, setShowRequestsDropdown, fileRequests, resources, programs, recentActivity, setShowBulkUpload }) {
             const [showProfile, setShowProfile] = useState(false);
 
             // Close dropdowns when clicking outside
@@ -1593,7 +2368,25 @@
                                             <p className="text-xs text-[#8b949e]">{currentUser.email}</p>
                                         </div>
                                         <a href="#" className="block px-4 py-2 text-[#e6edf3] hover:bg-[#30363d] transition-colors">Profile</a>
-                                        <a href="#" className="block px-4 py-2 text-[#e6edf3] hover:bg-[#30363d] transition-colors">Settings</a>
+                                        <div className="px-4 py-2">
+                                            <div className="text-xs font-medium text-[#8b949e] uppercase tracking-wider mb-2">Settings</div>
+                                            {currentUser?.role === 'Administrator' && bulkUserUploadConfig.featureFlag && (
+                                                <button
+                                                    onClick={() => {
+                                                        setShowProfile(false);
+                                                        setShowBulkUpload(true);
+                                                    }}
+                                                    className="w-full text-left block px-2 py-1 text-[#e6edf3] hover:bg-[#30363d] rounded transition-colors text-sm"
+                                                >
+                                                    <Icon name="users" className="mr-2" size={14} />
+                                                    Bulk User Upload
+                                                </button>
+                                            )}
+                                            <button className="w-full text-left block px-2 py-1 text-[#e6edf3] hover:bg-[#30363d] rounded transition-colors text-sm">
+                                                <Icon name="settings" className="mr-2" size={14} />
+                                                Preferences
+                                            </button>
+                                        </div>
                                         <hr className="border-[#30363d]" />
                                         <button
                                             onClick={onLogout}
@@ -3712,6 +4505,7 @@
             const [showFileRequestModal, setShowFileRequestModal] = useState(false);
             const [showStatsDropdown, setShowStatsDropdown] = useState(false);
             const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
+            const [showBulkUpload, setShowBulkUpload] = useState(false);
 
             // Calculate resource counts for each program-cohort combination
             const resourceCounts = useMemo(() => {
@@ -3932,6 +4726,7 @@
                         resources={resources}
                         programs={programs}
                         recentActivity={data.recentActivity}
+                        setShowBulkUpload={setShowBulkUpload}
                     />
 
                     <div className="flex flex-1 overflow-hidden">
@@ -4014,6 +4809,13 @@
                             fileRequests={data.fileRequests}
                             onSubmitRequest={handleFileRequest}
                             onClose={() => setShowFileRequestModal(false)}
+                        />
+                    )}
+
+                    {showBulkUpload && (
+                        <BulkUploadCard
+                            currentUser={currentUser}
+                            onClose={() => setShowBulkUpload(false)}
                         />
                     )}
 
