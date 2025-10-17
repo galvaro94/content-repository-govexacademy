@@ -488,6 +488,296 @@
             ]
         };
 
+        // Search Configuration
+        const searchConfig = {
+            debounceMs: 250,
+            groups: ["top", "recentByYou", "trending", "related"],
+            maxPerGroup: 5,
+            weights: { text: 0.45, user: 0.25, pop: 0.15, fresh: 0.10, org: 0.05 },
+            useEmbeddings: false,       // fallback to tags if false
+            showTimestamps: true,
+            minCharsToQuery: 1,
+            enablePredictiveSearch: true
+        };
+
+        // Search Item Type Definition and Mock Data
+        const mockSearchItems = [
+            {
+                id: "1",
+                title: "A-to-Z Master Inventory",
+                type: "document",
+                url: "https://docs.google.com/spreadsheets/d/abc123/edit",
+                tags: ["data inventory", "data management", "data quality"],
+                popularity_7d: 85,
+                last_updated: "2024-09-28T00:00:00Z",
+                last_used_by_you: "2024-10-15T14:30:00Z",
+                org_priority: 0.9
+            },
+            {
+                id: "2",
+                title: "Data Quality Framework",
+                type: "document",
+                url: "https://docs.google.com/document/d/xyz789/edit",
+                tags: ["data quality", "governance", "standards"],
+                popularity_7d: 72,
+                last_updated: "2024-09-20T00:00:00Z",
+                last_used_by_you: "2024-10-14T09:15:00Z",
+                org_priority: 0.8
+            },
+            {
+                id: "3",
+                title: "Project Proposal Template",
+                type: "document",
+                url: "https://docs.google.com/document/d/xyz789/edit",
+                tags: ["templates", "project management", "capacity building"],
+                popularity_7d: 45,
+                last_updated: "2024-07-20T00:00:00Z",
+                last_used_by_you: "2024-10-10T16:20:00Z",
+                org_priority: 0.7
+            },
+            {
+                id: "4",
+                title: "Data Ethics Framework",
+                type: "report",
+                url: "https://docs.google.com/document/d/def456/edit",
+                tags: ["ethics", "transparency", "governance"],
+                popularity_7d: 38,
+                last_updated: "2024-06-10T00:00:00Z",
+                last_used_by_you: null,
+                org_priority: 0.6
+            },
+            {
+                id: "5",
+                title: "AI Implementation Roadmap",
+                type: "document",
+                url: "https://docs.google.com/presentation/d/ghi123/edit",
+                tags: ["artificial intelligence", "implementation", "roadmap"],
+                popularity_7d: 91,
+                last_updated: "2024-08-01T00:00:00Z",
+                last_used_by_you: "2024-10-12T11:45:00Z",
+                org_priority: 0.9
+            },
+            {
+                id: "6",
+                title: "Data Visualization Best Practices",
+                type: "module",
+                url: "https://example.com/video/dataviz",
+                tags: ["visualization", "best practices", "training"],
+                popularity_7d: 67,
+                last_updated: "2024-05-22T00:00:00Z",
+                last_used_by_you: "2024-10-11T13:30:00Z",
+                org_priority: 0.5
+            },
+            {
+                id: "7",
+                title: "Performance Metrics Dashboard",
+                type: "dataset",
+                url: "https://docs.google.com/spreadsheets/d/jkl456/edit",
+                tags: ["metrics", "performance", "dashboard"],
+                popularity_7d: 29,
+                last_updated: "2024-09-15T00:00:00Z",
+                last_used_by_you: null,
+                org_priority: 0.4
+            },
+            {
+                id: "8",
+                title: "Data Catalog Playbook",
+                type: "document",
+                url: "https://example.com/catalog-guide",
+                tags: ["data catalog", "data inventory", "playbook"],
+                popularity_7d: 54,
+                last_updated: "2024-08-15T00:00:00Z",
+                last_used_by_you: "2024-10-08T10:00:00Z",
+                org_priority: 0.8
+            },
+            {
+                id: "9",
+                title: "Metadata Standards Guide",
+                type: "document",
+                url: "https://example.com/metadata-guide",
+                tags: ["metadata", "standards", "data governance"],
+                popularity_7d: 33,
+                last_updated: "2024-07-10T00:00:00Z",
+                last_used_by_you: null,
+                org_priority: 0.6
+            },
+            {
+                id: "10",
+                title: "Asset Registry Template",
+                type: "document",
+                url: "https://example.com/asset-registry",
+                tags: ["asset registry", "inventory", "template"],
+                popularity_7d: 41,
+                last_updated: "2024-09-05T00:00:00Z",
+                last_used_by_you: "2024-10-13T15:20:00Z",
+                org_priority: 0.7
+            }
+        ];
+
+        // Mock user usage history
+        const mockUserUsage = {
+            "1": 12, // A-to-Z Master Inventory - frequently used
+            "2": 8,  // Data Quality Framework
+            "5": 10, // AI Implementation Roadmap
+            "6": 6,  // Data Visualization Best Practices
+            "8": 4,  // Data Catalog Playbook
+            "10": 3  // Asset Registry Template
+        };
+
+        // Data Adapter Functions
+        async function fetchSearchCandidates(query) {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            if (!query || query.length < searchConfig.minCharsToQuery) {
+                return mockSearchItems.slice(0, 8); // Return some defaults
+            }
+
+            // Simple text matching simulation
+            const queryLower = query.toLowerCase();
+            return mockSearchItems.filter(item =>
+                item.title.toLowerCase().includes(queryLower) ||
+                item.tags.some(tag => tag.toLowerCase().includes(queryLower)) ||
+                item.type.toLowerCase().includes(queryLower)
+            );
+        }
+
+        async function fetchUserUsage(userId) {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 50));
+            return mockUserUsage;
+        }
+
+        async function fetchTrending() {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 50));
+            return mockSearchItems
+                .sort((a, b) => (b.popularity_7d || 0) - (a.popularity_7d || 0))
+                .slice(0, searchConfig.maxPerGroup);
+        }
+
+        async function fetchRelatedByTags(query) {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            const queryLower = query.toLowerCase();
+            const queryWords = queryLower.split(' ');
+
+            // Find items with overlapping tags
+            return mockSearchItems.filter(item => {
+                const hasTagOverlap = item.tags.some(tag =>
+                    queryWords.some(word => tag.toLowerCase().includes(word) && word.length > 2)
+                );
+                const notExactMatch = !item.title.toLowerCase().includes(queryLower);
+                return hasTagOverlap && notExactMatch;
+            }).slice(0, searchConfig.maxPerGroup);
+        }
+
+        // Ranking Logic
+        function calculateTextRelevance(query, item) {
+            if (!query) return 0;
+
+            const queryLower = query.toLowerCase();
+            const titleLower = item.title.toLowerCase();
+
+            // Exact title match gets highest score
+            if (titleLower === queryLower) return 1.0;
+
+            // Title starts with query gets high score
+            if (titleLower.startsWith(queryLower)) return 0.9;
+
+            // Title contains query gets medium score
+            if (titleLower.includes(queryLower)) return 0.7;
+
+            // Tag exact match gets good score
+            const tagMatch = item.tags.some(tag => tag.toLowerCase() === queryLower);
+            if (tagMatch) return 0.8;
+
+            // Tag contains query gets lower score
+            const tagContains = item.tags.some(tag => tag.toLowerCase().includes(queryLower));
+            if (tagContains) return 0.5;
+
+            return 0;
+        }
+
+        function calculateUserRecentUsage(item, userUsage) {
+            const usage = userUsage[item.id] || 0;
+            const maxUsage = Math.max(...Object.values(userUsage));
+            if (maxUsage === 0) return 0;
+
+            // Normalize usage frequency (0-0.7)
+            let score = (usage / maxUsage) * 0.7;
+
+            // Boost for recent usage
+            if (item.last_used_by_you) {
+                const lastUsed = new Date(item.last_used_by_you);
+                const now = new Date();
+                const daysSinceUsed = (now - lastUsed) / (1000 * 60 * 60 * 24);
+
+                if (daysSinceUsed <= 1) score += 0.3;      // Used today
+                else if (daysSinceUsed <= 7) score += 0.2;  // Used this week
+                else if (daysSinceUsed <= 30) score += 0.1; // Used this month
+            }
+
+            return Math.min(score, 1.0);
+        }
+
+        function calculateGlobalPopularity(item) {
+            const popularity = item.popularity_7d || 0;
+            // Normalize to 0-1 based on max observed popularity
+            const maxPopularity = 100; // Assuming max popularity of 100
+            return Math.min(popularity / maxPopularity, 1.0);
+        }
+
+        function calculateFreshness(item) {
+            if (!item.last_updated) return 0;
+
+            const lastUpdated = new Date(item.last_updated);
+            const now = new Date();
+            const daysSinceUpdate = (now - lastUpdated) / (1000 * 60 * 60 * 24);
+
+            if (daysSinceUpdate <= 7) return 1.0;       // Updated this week
+            if (daysSinceUpdate <= 30) return 0.7;      // Updated this month
+            if (daysSinceUpdate <= 90) return 0.4;      // Updated this quarter
+            if (daysSinceUpdate <= 365) return 0.2;     // Updated this year
+
+            return 0.1; // Older than a year
+        }
+
+        function rankItems(query, items, userUsage, config = searchConfig) {
+            return items.map(item => {
+                const textRelevance = calculateTextRelevance(query, item);
+                const userRecentUsage = calculateUserRecentUsage(item, userUsage);
+                const globalPopularity = calculateGlobalPopularity(item);
+                const freshness = calculateFreshness(item);
+                const orgPriority = item.org_priority || 0;
+
+                const score =
+                    config.weights.text * textRelevance +
+                    config.weights.user * userRecentUsage +
+                    config.weights.pop * globalPopularity +
+                    config.weights.fresh * freshness +
+                    config.weights.org * orgPriority;
+
+                return { ...item, score, textRelevance, userRecentUsage };
+            })
+            .sort((a, b) => {
+                if (Math.abs(a.score - b.score) < 0.01) {
+                    // Break ties by last_used_by_you
+                    const aLastUsed = a.last_used_by_you ? new Date(a.last_used_by_you) : new Date(0);
+                    const bLastUsed = b.last_used_by_you ? new Date(b.last_used_by_you) : new Date(0);
+                    if (aLastUsed.getTime() !== bLastUsed.getTime()) {
+                        return bLastUsed - aLastUsed;
+                    }
+                    // Then by last_updated
+                    const aUpdated = new Date(a.last_updated || 0);
+                    const bUpdated = new Date(b.last_updated || 0);
+                    return bUpdated - aUpdated;
+                }
+                return b.score - a.score;
+            });
+        }
+
         // TODO: Replace with API call to Google Sheets
         async function fetchDataFromGoogleSheets() {
             // Placeholder for future Google Sheets API integration
@@ -505,6 +795,432 @@
             }, []);
 
             return <i data-lucide={name} className={className} style={{ width: size, height: size }}></i>;
+        }
+
+        /**
+         * UniversalSearch Component
+         *
+         * A comprehensive search component with predictive suggestions.
+         *
+         * Features:
+         * - Type-ahead predictions with multiple groups (Top Results, Recently Used, Trending, Related)
+         * - Configurable ranking weights (text relevance, user usage, popularity, freshness, org priority)
+         * - Keyboard navigation (Up/Down/Enter/Esc)
+         * - Debounced queries with request cancellation
+         * - Accessibility support (ARIA roles)
+         * - Analytics telemetry
+         *
+         * To wire real endpoints:
+         * 1. Replace mock adapter functions (fetchSearchCandidates, fetchUserUsage, etc.)
+         * 2. Update searchConfig object for your specific needs
+         * 3. Configure analytics events in handleAnalytics function
+         * 4. Update type mappings and styling as needed
+         *
+         * Configuration via searchConfig object:
+         * - debounceMs: Delay before firing queries
+         * - weights: Ranking algorithm weights
+         * - maxPerGroup: Maximum items per result group
+         * - enablePredictiveSearch: Feature flag
+         */
+        function UniversalSearch({ currentUserId, onOpen, searchQuery, setSearchQuery }) {
+            const [isOpen, setIsOpen] = useState(false);
+            const [results, setResults] = useState({
+                top: [],
+                recentByYou: [],
+                trending: [],
+                related: []
+            });
+            const [activeIndex, setActiveIndex] = useState(-1);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const [lastQuery, setLastQuery] = useState('');
+
+            const inputRef = useRef(null);
+            const dropdownRef = useRef(null);
+            const abortControllerRef = useRef(null);
+            const queryCache = useRef(new Map());
+
+            // Debounced search function
+            const debouncedSearch = useCallback(
+                useMemo(() => {
+                    let timeoutId;
+                    return (query) => {
+                        clearTimeout(timeoutId);
+                        timeoutId = setTimeout(() => performSearch(query), searchConfig.debounceMs);
+                    };
+                }, []),
+                []
+            );
+
+            // Perform search with caching and request cancellation
+            const performSearch = async (query) => {
+                if (!searchConfig.enablePredictiveSearch) return;
+
+                // Cancel previous request
+                if (abortControllerRef.current) {
+                    abortControllerRef.current.abort();
+                }
+
+                // Check cache first
+                const cacheKey = query.toLowerCase().trim();
+                if (queryCache.current.has(cacheKey)) {
+                    setResults(queryCache.current.get(cacheKey));
+                    setLastQuery(query);
+                    return;
+                }
+
+                setLoading(true);
+                setError(null);
+                abortControllerRef.current = new AbortController();
+
+                try {
+                    const [candidates, userUsage, trending, related] = await Promise.all([
+                        fetchSearchCandidates(query),
+                        fetchUserUsage(currentUserId),
+                        query.length >= 3 ? fetchTrending() : Promise.resolve([]),
+                        query.length >= 3 ? fetchRelatedByTags(query) : Promise.resolve([])
+                    ]);
+
+                    if (abortControllerRef.current.signal.aborted) return;
+
+                    // Rank and deduplicate results
+                    const rankedCandidates = rankItems(query, candidates, userUsage);
+
+                    // Group results
+                    const topResults = rankedCandidates.slice(0, searchConfig.maxPerGroup);
+
+                    // Recently used by user (filter from ranked results)
+                    const recentByYou = rankedCandidates
+                        .filter(item => item.userRecentUsage > 0)
+                        .slice(0, searchConfig.maxPerGroup);
+
+                    // Remove duplicates from other groups
+                    const usedIds = new Set([...topResults.map(r => r.id), ...recentByYou.map(r => r.id)]);
+                    const trendingFiltered = trending.filter(item => !usedIds.has(item.id)).slice(0, searchConfig.maxPerGroup);
+                    const relatedFiltered = related.filter(item => !usedIds.has(item.id)).slice(0, searchConfig.maxPerGroup);
+
+                    const searchResults = {
+                        top: topResults,
+                        recentByYou,
+                        trending: trendingFiltered,
+                        related: relatedFiltered
+                    };
+
+                    setResults(searchResults);
+                    setLastQuery(query);
+
+                    // Cache results (keep last 5 queries)
+                    if (queryCache.current.size >= 5) {
+                        const firstKey = queryCache.current.keys().next().value;
+                        queryCache.current.delete(firstKey);
+                    }
+                    queryCache.current.set(cacheKey, searchResults);
+
+                    // Analytics
+                    handleAnalytics('search_typed', { queryLength: query.length });
+
+                } catch (err) {
+                    if (!abortControllerRef.current.signal.aborted) {
+                        setError('Search failed. Please try again.');
+                        console.error('Search error:', err);
+                    }
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            // Handle input changes
+            const handleInputChange = (e) => {
+                const value = e.target.value;
+                setSearchQuery(value);
+                setActiveIndex(-1);
+
+                if (value.length >= searchConfig.minCharsToQuery) {
+                    debouncedSearch(value);
+                } else {
+                    setResults({ top: [], recentByYou: [], trending: [], related: [] });
+                }
+            };
+
+            // Handle focus
+            const handleFocus = () => {
+                setIsOpen(true);
+                handleAnalytics('search_opened');
+
+                if (searchQuery.length < searchConfig.minCharsToQuery) {
+                    performSearch(''); // Load defaults
+                }
+            };
+
+            // Handle blur (with delay to allow clicks)
+            const handleBlur = () => {
+                setTimeout(() => setIsOpen(false), 200);
+            };
+
+            // Get flattened results for keyboard navigation
+            const flatResults = useMemo(() => {
+                const flat = [];
+                Object.entries(results).forEach(([groupKey, items]) => {
+                    items.forEach((item, index) => {
+                        flat.push({ ...item, groupKey, groupIndex: index });
+                    });
+                });
+                return flat;
+            }, [results]);
+
+            // Handle keyboard navigation
+            const handleKeyDown = (e) => {
+                if (!isOpen) return;
+
+                switch (e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        setActiveIndex(prev => Math.min(prev + 1, flatResults.length - 1));
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        setActiveIndex(prev => Math.max(prev - 1, -1));
+                        break;
+                    case 'Enter':
+                        e.preventDefault();
+                        if (activeIndex >= 0 && flatResults[activeIndex]) {
+                            handleResultClick(flatResults[activeIndex]);
+                        }
+                        break;
+                    case 'Escape':
+                        e.preventDefault();
+                        setIsOpen(false);
+                        inputRef.current?.blur();
+                        break;
+                }
+            };
+
+            // Handle result selection
+            const handleResultClick = (item) => {
+                handleAnalytics('search_result_selected', { id: item.id, type: item.type });
+
+                if (onOpen) {
+                    onOpen(item.url);
+                } else {
+                    window.open(item.url, '_blank', 'noopener,noreferrer');
+                }
+
+                setIsOpen(false);
+                setSearchQuery('');
+            };
+
+            // Handle result hover for analytics
+            const handleResultHover = (item) => {
+                handleAnalytics('search_result_hovered', { id: item.id });
+            };
+
+            // Analytics helper
+            const handleAnalytics = (event, data = {}) => {
+                // Implement your analytics tracking here
+                console.log('Analytics:', event, data);
+                // Example: analytics.track(event, data);
+            };
+
+            // Format timestamp
+            const formatTimestamp = (dateString) => {
+                if (!dateString) return '';
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 0) return 'Today';
+                if (diffDays === 1) return 'Yesterday';
+                if (diffDays < 7) return `${diffDays}d ago`;
+                if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+                return `${Math.floor(diffDays / 30)}mo ago`;
+            };
+
+            // Get type icon
+            const getTypeIcon = (type) => {
+                switch (type) {
+                    case 'document': return 'file-text';
+                    case 'dataset': return 'database';
+                    case 'module': return 'book-open';
+                    case 'report': return 'file-bar-chart';
+                    case 'page': return 'globe';
+                    default: return 'file';
+                }
+            };
+
+            // Get type color
+            const getTypeColor = (type) => {
+                switch (type) {
+                    case 'document': return 'bg-blue-500';
+                    case 'dataset': return 'bg-green-500';
+                    case 'module': return 'bg-purple-500';
+                    case 'report': return 'bg-orange-500';
+                    case 'page': return 'bg-indigo-500';
+                    default: return 'bg-gray-500';
+                }
+            };
+
+            // Handle slash key shortcut
+            useEffect(() => {
+                const handleSlashKey = (e) => {
+                    if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== 'INPUT') {
+                        e.preventDefault();
+                        inputRef.current?.focus();
+                    }
+                };
+
+                document.addEventListener('keydown', handleSlashKey);
+                return () => document.removeEventListener('keydown', handleSlashKey);
+            }, []);
+
+            // Group labels
+            const groupLabels = {
+                top: 'Top Results',
+                recentByYou: 'Recently Used by You',
+                trending: 'Trending',
+                related: `Related to "${lastQuery}"`
+            };
+
+            // Empty state
+            const hasResults = Object.values(results).some(group => group.length > 0);
+            const showEmptyState = isOpen && !loading && !hasResults && searchQuery.length >= searchConfig.minCharsToQuery;
+
+            return (
+                <div className="relative flex-1 max-w-2xl">
+                    <div className="relative">
+                        <Icon name="search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8b949e]" size={18} />
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            placeholder="Search data, docs, or modules..."
+                            value={searchQuery}
+                            onChange={handleInputChange}
+                            onFocus={handleFocus}
+                            onBlur={handleBlur}
+                            onKeyDown={handleKeyDown}
+                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg pl-10 pr-4 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                            role="combobox"
+                            aria-expanded={isOpen}
+                            aria-autocomplete="list"
+                            aria-owns="search-results"
+                        />
+                        {loading && (
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#137fec] border-t-transparent"></div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Dropdown Results */}
+                    {isOpen && (
+                        <div
+                            ref={dropdownRef}
+                            id="search-results"
+                            className="absolute top-full left-0 right-0 mt-2 bg-[#161b22] border border-[#30363d] rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto"
+                            role="listbox"
+                        >
+                            {error && (
+                                <div className="p-4 text-center text-[#f85149] text-sm">
+                                    {error}
+                                </div>
+                            )}
+
+                            {showEmptyState && (
+                                <div className="p-4 text-center">
+                                    <div className="text-[#8b949e] text-sm mb-3">No results. Try broader terms.</div>
+                                    <div className="space-y-1">
+                                        <button
+                                            onClick={() => handleResultClick({ url: '#', id: 'help-1' })}
+                                            className="block w-full text-left px-3 py-2 text-[#137fec] hover:bg-[#30363d] rounded text-sm transition-colors"
+                                        >
+                                            Browse all resources
+                                        </button>
+                                        <button
+                                            onClick={() => handleResultClick({ url: '#', id: 'help-2' })}
+                                            className="block w-full text-left px-3 py-2 text-[#137fec] hover:bg-[#30363d] rounded text-sm transition-colors"
+                                        >
+                                            View popular content
+                                        </button>
+                                        <button
+                                            onClick={() => handleResultClick({ url: '#', id: 'help-3' })}
+                                            className="block w-full text-left px-3 py-2 text-[#137fec] hover:bg-[#30363d] rounded text-sm transition-colors"
+                                        >
+                                            Request new resource
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!error && !showEmptyState && Object.entries(results).map(([groupKey, items]) => {
+                                if (items.length === 0) return null;
+
+                                return (
+                                    <div key={groupKey} className="border-b border-[#30363d] last:border-b-0">
+                                        <div className="px-4 py-2 bg-[#0d1117] text-xs font-medium text-[#8b949e] uppercase tracking-wider">
+                                            {groupLabels[groupKey]} ({items.length})
+                                        </div>
+                                        {items.map((item, index) => {
+                                            const flatIndex = flatResults.findIndex(r => r.id === item.id);
+                                            const isActive = flatIndex === activeIndex;
+
+                                            return (
+                                                <div
+                                                    key={item.id}
+                                                    className={`px-4 py-3 cursor-pointer transition-colors border-l-2 ${
+                                                        isActive
+                                                            ? 'bg-[#137fec] bg-opacity-10 border-l-[#137fec] text-[#e6edf3]'
+                                                            : 'border-l-transparent hover:bg-[#30363d] text-[#e6edf3]'
+                                                    }`}
+                                                    onClick={() => handleResultClick(item)}
+                                                    onMouseEnter={() => handleResultHover(item)}
+                                                    role="option"
+                                                    aria-selected={isActive}
+                                                >
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center space-x-2 mb-1">
+                                                                <Icon name={getTypeIcon(item.type)} size={14} className="text-[#8b949e] flex-shrink-0" />
+                                                                <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium text-white ${getTypeColor(item.type)}`}>
+                                                                    {item.type}
+                                                                </span>
+                                                                <h4 className="font-medium text-sm truncate">{item.title}</h4>
+                                                            </div>
+                                                            {item.tags && item.tags.length > 0 && (
+                                                                <div className="flex flex-wrap gap-1 mb-1">
+                                                                    {item.tags.slice(0, 3).map(tag => (
+                                                                        <span key={tag} className="inline-block px-1.5 py-0.5 bg-[#30363d] text-[#8b949e] rounded text-xs">
+                                                                            {tag}
+                                                                        </span>
+                                                                    ))}
+                                                                    {item.tags.length > 3 && (
+                                                                        <span className="inline-block px-1.5 py-0.5 bg-[#30363d] text-[#8b949e] rounded text-xs">
+                                                                            +{item.tags.length - 3}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {searchConfig.showTimestamps && (
+                                                            <div className="text-xs text-[#8b949e] ml-2 flex-shrink-0">
+                                                                {item.last_used_by_you && (
+                                                                    <div>Used {formatTimestamp(item.last_used_by_you)}</div>
+                                                                )}
+                                                                {item.last_updated && (
+                                                                    <div>Updated {formatTimestamp(item.last_updated)}</div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
         }
 
         // Login Component
@@ -648,18 +1364,12 @@
                                     <p className="text-xs text-[#8b949e]">Welcome back, {currentUser.name.split(' ')[0]}</p>
                                 </div>
                             </div>
-                            <div className="flex-1 max-w-2xl">
-                                <div className="relative">
-                                    <Icon name="search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8b949e]" size={18} />
-                                    <input
-                                        type="text"
-                                        placeholder="Search resources..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg pl-10 pr-4 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
-                                    />
-                                </div>
-                            </div>
+                            <UniversalSearch
+                                currentUserId={currentUser?.id || 'anonymous'}
+                                searchQuery={searchQuery}
+                                setSearchQuery={setSearchQuery}
+                                onOpen={(url) => window.open(url, '_blank', 'noopener,noreferrer')}
+                            />
                         </div>
                         <div className="flex items-center space-x-4">
                             <button
@@ -3256,7 +3966,8 @@
         }
 
         // Render the app
-        ReactDOM.render(<App />, document.getElementById('root'));
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
