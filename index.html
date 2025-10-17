@@ -62,12 +62,18 @@
     <script type="text/babel">
         const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
-        // User authentication data
+        // User authentication data - All accounts have access to enhanced Universal Search
         const USERS = [
             { id: 1, email: "jane.doe@govex.org", password: "demo123", name: "Jane Doe", role: "Program Manager", avatar: "JD" },
             { id: 2, email: "john.smith@govex.org", password: "demo123", name: "John Smith", role: "Data Analyst", avatar: "JS" },
             { id: 3, email: "sarah.miller@govex.org", password: "demo123", name: "Sarah Miller", role: "Research Director", avatar: "SM" },
-            { id: 4, email: "admin@govex.org", password: "admin123", name: "Admin User", role: "Administrator", avatar: "AU" }
+            { id: 4, email: "admin@govex.org", password: "admin123", name: "Admin User", role: "Administrator", avatar: "AU" },
+            { id: 5, email: "admin@govex.com", password: "admin123", name: "Admin User", role: "Administrator", avatar: "AU" },
+            { id: 6, email: "test@govex.org", password: "test123", name: "Test User", role: "Analyst", avatar: "TU" },
+            { id: 7, email: "demo@govex.org", password: "demo123", name: "Demo User", role: "Coordinator", avatar: "DU" },
+            { id: 8, email: "user@govex.org", password: "user123", name: "General User", role: "Researcher", avatar: "GU" },
+            { id: 9, email: "manager@govex.org", password: "manager123", name: "Project Manager", role: "Project Manager", avatar: "PM" },
+            { id: 10, email: "analyst@govex.org", password: "analyst123", name: "Senior Analyst", role: "Senior Data Analyst", avatar: "SA" }
         ];
 
         // Mock Database Structure
@@ -614,14 +620,35 @@
             }
         ];
 
-        // Mock user usage history
-        const mockUserUsage = {
-            "1": 12, // A-to-Z Master Inventory - frequently used
-            "2": 8,  // Data Quality Framework
-            "5": 10, // AI Implementation Roadmap
-            "6": 6,  // Data Visualization Best Practices
-            "8": 4,  // Data Catalog Playbook
-            "10": 3  // Asset Registry Template
+        // Mock user usage history - Personalized for different user types
+        const mockUserUsageByRole = {
+            "Administrator": {
+                "1": 12, "2": 8, "5": 10, "6": 6, "8": 4, "10": 3
+            },
+            "Program Manager": {
+                "3": 15, "5": 12, "7": 8, "9": 5, "10": 7
+            },
+            "Data Analyst": {
+                "1": 20, "2": 15, "6": 12, "8": 10, "9": 3
+            },
+            "Research Director": {
+                "4": 18, "5": 14, "6": 11, "7": 9, "8": 6
+            },
+            "Analyst": {
+                "1": 10, "2": 12, "6": 8, "8": 5, "10": 4
+            },
+            "Coordinator": {
+                "3": 8, "5": 6, "7": 10, "9": 7, "10": 5
+            },
+            "Researcher": {
+                "4": 9, "6": 11, "8": 7, "9": 4, "10": 6
+            },
+            "Project Manager": {
+                "3": 14, "5": 11, "7": 13, "9": 8, "10": 9
+            },
+            "Senior Data Analyst": {
+                "1": 25, "2": 20, "6": 18, "8": 15, "9": 10
+            }
         };
 
         // Data Adapter Functions
@@ -645,7 +672,11 @@
         async function fetchUserUsage(userId) {
             // Simulate API delay
             await new Promise(resolve => setTimeout(resolve, 50));
-            return mockUserUsage;
+
+            // Find user and return role-based usage
+            const user = USERS.find(u => u.id.toString() === userId.toString());
+            const userRole = user ? user.role : 'Researcher';
+            return mockUserUsageByRole[userRole] || mockUserUsageByRole['Researcher'];
         }
 
         async function fetchTrending() {
@@ -1305,11 +1336,36 @@
                             </form>
 
                             <div className="mt-6 p-4 bg-[#0d1117] rounded-lg">
-                                <p className="text-xs text-[#8b949e] mb-2">Demo Accounts:</p>
-                                <div className="space-y-1 text-xs">
-                                    <div className="text-[#e6edf3]">jane.doe@govex.org / demo123</div>
-                                    <div className="text-[#e6edf3]">john.smith@govex.org / demo123</div>
-                                    <div className="text-[#e6edf3]">admin@govex.org / admin123</div>
+                                <p className="text-xs text-[#8b949e] mb-3">🔍 Test Enhanced Universal Search - All accounts have access:</p>
+                                <div className="grid grid-cols-1 gap-2 text-xs">
+                                    <div className="flex justify-between">
+                                        <span className="text-[#e6edf3]">admin@govex.com</span>
+                                        <span className="text-[#8b949e]">admin123</span>
+                                        <span className="text-[#137fec] text-xs">Admin</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-[#e6edf3]">jane.doe@govex.org</span>
+                                        <span className="text-[#8b949e]">demo123</span>
+                                        <span className="text-[#137fec] text-xs">Manager</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-[#e6edf3]">john.smith@govex.org</span>
+                                        <span className="text-[#8b949e]">demo123</span>
+                                        <span className="text-[#137fec] text-xs">Analyst</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-[#e6edf3]">test@govex.org</span>
+                                        <span className="text-[#8b949e]">test123</span>
+                                        <span className="text-[#137fec] text-xs">Test User</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-[#e6edf3]">analyst@govex.org</span>
+                                        <span className="text-[#8b949e]">analyst123</span>
+                                        <span className="text-[#137fec] text-xs">Sr. Analyst</span>
+                                    </div>
+                                </div>
+                                <div className="mt-3 pt-2 border-t border-[#30363d]">
+                                    <p className="text-xs text-[#8b949e]">✨ Try typing "data", "AI", or "/" for instant search</p>
                                 </div>
                             </div>
                         </div>
