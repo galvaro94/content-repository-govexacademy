@@ -840,20 +840,93 @@
 
         // Data Adapter Functions
         async function fetchSearchCandidates(query) {
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Get real resources from Google Sheets data
+            const currentData = await fetchDataFromGoogleSheets();
+            const resources = currentData.resources || [];
 
             if (!query || query.length < searchConfig.minCharsToQuery) {
-                return mockSearchItems.slice(0, 8); // Return some defaults
+                // Return top 8 most recently updated resources
+                return resources
+                    .sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated))
+                    .slice(0, 8)
+                    .map(transformResourceToSearchItem);
             }
 
-            // Simple text matching simulation
+            // Advanced text matching with Google Sheets data
             const queryLower = query.toLowerCase();
-            return mockSearchItems.filter(item =>
-                item.title.toLowerCase().includes(queryLower) ||
-                item.tags.some(tag => tag.toLowerCase().includes(queryLower)) ||
-                item.type.toLowerCase().includes(queryLower)
-            );
+            const queryWords = queryLower.split(' ').filter(word => word.length > 1);
+
+            return resources.filter(resource => {
+                // Search in resource name (highest priority)
+                if (resource.resourceName && resource.resourceName.toLowerCase().includes(queryLower)) {
+                    return true;
+                }
+
+                // Search in description
+                if (resource.description && resource.description.toLowerCase().includes(queryLower)) {
+                    return true;
+                }
+
+                // Search in topics
+                if (resource.topics && resource.topics.some(topic =>
+                    topic.toLowerCase().includes(queryLower) ||
+                    queryWords.some(word => topic.toLowerCase().includes(word))
+                )) {
+                    return true;
+                }
+
+                // Search in authors
+                if (resource.authors && resource.authors.some(author =>
+                    author.toLowerCase().includes(queryLower)
+                )) {
+                    return true;
+                }
+
+                // Search in programs used
+                if (resource.programsUsed && resource.programsUsed.some(program =>
+                    program.toLowerCase().includes(queryLower)
+                )) {
+                    return true;
+                }
+
+                // Search in file type
+                if (resource.fileType && resource.fileType.toLowerCase().includes(queryLower)) {
+                    return true;
+                }
+
+                return false;
+            }).map(transformResourceToSearchItem);
+        }
+
+        // Transform Google Sheets resource to search item format
+        function transformResourceToSearchItem(resource) {
+            return {
+                id: resource.id.toString(),
+                title: resource.resourceName || 'Untitled Resource',
+                type: getSearchItemType(resource.fileType),
+                url: resource.englishLink || resource.spanishLink || resource.portugueseLink || resource.italianLink || '#',
+                tags: resource.topics || [],
+                popularity_7d: Math.random() * 100, // Could be enhanced with real analytics
+                last_updated: resource.lastUpdated + 'T00:00:00Z',
+                last_used_by_you: null, // Could be enhanced with user tracking
+                org_priority: resource.govexOrExternal === 'GovEx' ? 0.9 : 0.7,
+                authors: resource.authors || [],
+                programs: resource.programsUsed || [],
+                fillable: resource.fillable || false,
+                description: resource.description || ''
+            };
+        }
+
+        // Map file types to search item types
+        function getSearchItemType(fileType) {
+            if (!fileType) return 'document';
+            const type = fileType.toLowerCase();
+            if (type.includes('xlsx') || type.includes('xls')) return 'dataset';
+            if (type.includes('pdf')) return 'document';
+            if (type.includes('docx') || type.includes('doc')) return 'document';
+            if (type.includes('pptx') || type.includes('ppt')) return 'presentation';
+            if (type.includes('html')) return 'page';
+            return 'document';
         }
 
         async function fetchUserUsage(userId) {
@@ -867,28 +940,47 @@
         }
 
         async function fetchTrending() {
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 50));
-            return mockSearchItems
-                .sort((a, b) => (b.popularity_7d || 0) - (a.popularity_7d || 0))
+            // Get real resources and find trending ones based on recent updates and GovEx priority
+            const currentData = await fetchDataFromGoogleSheets();
+            const resources = currentData.resources || [];
+
+            return resources
+                .map(transformResourceToSearchItem)
+                .sort((a, b) => {
+                    // Sort by organization priority (GovEx first) and recent updates
+                    const priorityDiff = b.org_priority - a.org_priority;
+                    if (priorityDiff !== 0) return priorityDiff;
+                    return new Date(b.last_updated) - new Date(a.last_updated);
+                })
                 .slice(0, searchConfig.maxPerGroup);
         }
 
         async function fetchRelatedByTags(query) {
-            // Simulate API delay
-            await new Promise(resolve => setTimeout(resolve, 50));
+            // Get real resources and find related ones by topics/tags
+            const currentData = await fetchDataFromGoogleSheets();
+            const resources = currentData.resources || [];
 
             const queryLower = query.toLowerCase();
-            const queryWords = queryLower.split(' ');
+            const queryWords = queryLower.split(' ').filter(word => word.length > 2);
 
-            // Find items with overlapping tags
-            return mockSearchItems.filter(item => {
-                const hasTagOverlap = item.tags.some(tag =>
-                    queryWords.some(word => tag.toLowerCase().includes(word) && word.length > 2)
-                );
-                const notExactMatch = !item.title.toLowerCase().includes(queryLower);
-                return hasTagOverlap && notExactMatch;
-            }).slice(0, searchConfig.maxPerGroup);
+            // Find resources with overlapping topics, authors, or programs
+            return resources
+                .filter(resource => {
+                    const hasTopicOverlap = resource.topics && resource.topics.some(topic =>
+                        queryWords.some(word => topic.toLowerCase().includes(word))
+                    );
+                    const hasAuthorOverlap = resource.authors && resource.authors.some(author =>
+                        queryWords.some(word => author.toLowerCase().includes(word))
+                    );
+                    const hasProgramOverlap = resource.programsUsed && resource.programsUsed.some(program =>
+                        queryWords.some(word => program.toLowerCase().includes(word))
+                    );
+                    const notExactMatch = !(resource.resourceName && resource.resourceName.toLowerCase().includes(queryLower));
+
+                    return (hasTopicOverlap || hasAuthorOverlap || hasProgramOverlap) && notExactMatch;
+                })
+                .map(transformResourceToSearchItem)
+                .slice(0, searchConfig.maxPerGroup);
         }
 
         // Ranking Logic
@@ -3906,8 +3998,12 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                     const total = resources.length;
                     const govex = resources.filter(r => r.govexOrExternal === 'GovEx').length;
                     const external = resources.filter(r => r.govexOrExternal === 'External').length;
+                    const fillable = resources.filter(r => r.fillable).length;
+                    const multiLang = resources.filter(r =>
+                        [r.englishLink, r.spanishLink, r.portugueseLink, r.italianLink].filter(Boolean).length > 1
+                    ).length;
                     return {
-                        message: `📊 **Dashboard Stats:**\n• Total: ${total} resources\n• GovEx: ${govex}\n• External: ${external}`,
+                        message: `📊 **Live Dashboard Stats:**\n• Total: ${total} resources\n• GovEx: ${govex}\n• External: ${external}\n• Fillable: ${fillable}\n• Multi-language: ${multiLang}\n\n✨ Data synced from Google Sheets!`,
                         action: null
                     };
                 }
@@ -3926,8 +4022,39 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                     };
                 }
 
+                // Check for any author name in the message
+                const allAuthors = [...new Set(resources.flatMap(r => r.authors || []))];
+                const mentionedAuthor = allAuthors.find(author =>
+                    msg.includes(author.toLowerCase())
+                );
+
+                if (mentionedAuthor) {
+                    const count = resources.filter(r => r.authors?.includes(mentionedAuthor)).length;
+                    return {
+                        message: `👤 Found ${count} resources by ${mentionedAuthor}!`,
+                        action: () => setSelectedFilters(prev => ({ ...prev, authors: new Set([mentionedAuthor]) }))
+                    };
+                }
+
+                // Check for any topic in the message
+                const allTopics = [...new Set(resources.flatMap(r => r.topics || []))];
+                const mentionedTopic = allTopics.find(topic =>
+                    msg.includes(topic.toLowerCase())
+                );
+
+                if (mentionedTopic) {
+                    const count = resources.filter(r => r.topics?.includes(mentionedTopic)).length;
+                    return {
+                        message: `🎯 Found ${count} resources about ${mentionedTopic}!`,
+                        action: () => setSelectedFilters(prev => ({ ...prev, topics: new Set([mentionedTopic]) }))
+                    };
+                }
+
+                const availableAuthors = allAuthors.slice(0, 3).join(', ');
+                const availableTopics = allTopics.slice(0, 3).join(', ');
+
                 return {
-                    message: "I can help you find resources! Try:\n• \"Find [topic] resources\"\n• \"Show me [author] resources\"\n• \"Filter by [file type]\"\n• \"Dashboard stats\"",
+                    message: `I can help you find resources! Try:\n• \"Dashboard stats\"\n• \"Show GovEx resources\"\n• \"Find Excel files\"\n• Authors: ${availableAuthors}\n• Topics: ${availableTopics}\n\n📊 Live data from Google Sheets!`,
                     action: null
                 };
             };
