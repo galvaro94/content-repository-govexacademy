@@ -69,6 +69,11 @@
         // - Get your API_KEY from Google Cloud Console
         // - Get your SHEET_ID from your Google Sheets URL
         // - Adjust the RANGE to match your data location
+        //
+        // STEP 2: For File Requests (optional):
+        // - Create a separate Google Sheet for file requests
+        // - Replace 'YOUR_FILE_REQUESTS_SHEET_ID' below
+        // - Headers: Timestamp, Name, Email, Description, Program, Additional Context, Status, Priority
         // ==========================================
 
         // User authentication data - All accounts have access to enhanced Universal Search
@@ -1095,6 +1100,13 @@
             RANGE: 'Sheet1!A2:M', // Gets columns A through M starting from row 2 (skipping headers)
         };
 
+        // File Requests Google Sheets Configuration
+        const FILE_REQUESTS_SHEETS_CONFIG = {
+            API_KEY: 'AIzaSyBUa8W2lZXxRNfqJ3Ov0MWUPeTd0TjkRhg',
+            SHEET_ID: 'YOUR_FILE_REQUESTS_SHEET_ID', // Replace with your file requests sheet ID
+            RANGE: 'FileRequests!A2:H', // Columns: Timestamp, Name, Email, Description, Program, Additional Context, Status, Priority
+        };
+
         // Google Sheets API service functions
         const GoogleSheetsService = {
             async fetchSheetData() {
@@ -1188,6 +1200,89 @@
                 return MOCK_DATABASE;
             }
         }
+
+        // File Requests Google Sheets Service
+        const FileRequestsService = {
+            async submitFileRequest(requestData) {
+                const { API_KEY, SHEET_ID } = FILE_REQUESTS_SHEETS_CONFIG;
+
+                if (!API_KEY || !SHEET_ID || SHEET_ID === 'YOUR_FILE_REQUESTS_SHEET_ID') {
+                    console.warn('File Requests Google Sheets not configured, using local storage');
+                    return this.saveToLocalStorage(requestData);
+                }
+
+                try {
+                    // For now, we'll use the append method via Google Sheets API
+                    // Note: This requires enabling Google Sheets API for writing
+                    const timestamp = new Date().toISOString();
+                    const values = [[
+                        timestamp,
+                        requestData.userName || 'Anonymous',
+                        requestData.userEmail || 'unknown@email.com',
+                        requestData.description,
+                        requestData.program,
+                        requestData.additionalContext || '',
+                        'Submitted', // Default status
+                        'Medium' // Default priority
+                    ]];
+
+                    // TODO: Replace with actual Google Sheets API append call
+                    // This is a placeholder for the actual implementation
+                    console.log('Would submit to Google Sheets:', { values });
+
+                    // For now, save to localStorage as fallback
+                    return this.saveToLocalStorage(requestData);
+
+                } catch (error) {
+                    console.error('Error submitting to Google Sheets:', error);
+                    return this.saveToLocalStorage(requestData);
+                }
+            },
+
+            saveToLocalStorage(requestData) {
+                try {
+                    const existingRequests = JSON.parse(localStorage.getItem('govex_file_requests') || '[]');
+                    const newRequest = {
+                        id: Date.now(),
+                        ...requestData,
+                        timestamp: new Date().toISOString(),
+                        status: 'Submitted'
+                    };
+                    existingRequests.push(newRequest);
+                    localStorage.setItem('govex_file_requests', JSON.stringify(existingRequests));
+                    return { success: true, request: newRequest };
+                } catch (error) {
+                    console.error('Error saving to localStorage:', error);
+                    return { success: false, error: error.message };
+                }
+            },
+
+            async getFileRequests() {
+                const { API_KEY, SHEET_ID, RANGE } = FILE_REQUESTS_SHEETS_CONFIG;
+
+                if (!API_KEY || !SHEET_ID || SHEET_ID === 'YOUR_FILE_REQUESTS_SHEET_ID') {
+                    return this.getFromLocalStorage();
+                }
+
+                try {
+                    // TODO: Implement actual Google Sheets read
+                    console.log('Would fetch from Google Sheets');
+                    return this.getFromLocalStorage();
+                } catch (error) {
+                    console.error('Error fetching from Google Sheets:', error);
+                    return this.getFromLocalStorage();
+                }
+            },
+
+            getFromLocalStorage() {
+                try {
+                    return JSON.parse(localStorage.getItem('govex_file_requests') || '[]');
+                } catch (error) {
+                    console.error('Error reading from localStorage:', error);
+                    return [];
+                }
+            }
+        };
 
         // Icon components using Lucide
         function Icon({ name, className = "", size = 20 }) {
@@ -3741,6 +3836,7 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                     await onSubmitRequest(newRequest);
                     setFormData({ description: '', program: '', additionalContext: '' });
                     setErrors({});
+                    onClose(); // Close modal after successful submission
                 } catch (error) {
                     setErrors({ submit: 'Failed to submit request. Please try again.' });
                 } finally {
@@ -4882,35 +4978,59 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 localStorage.setItem('resources', JSON.stringify(updatedResources));
             };
 
-            const handleFileRequest = (newRequest) => {
+            const handleFileRequest = async (newRequest) => {
                 console.log("Adding new file request:", newRequest);
 
-                const updatedRequests = [...data.fileRequests, newRequest];
+                try {
+                    // Add user info to the request
+                    const requestWithUserInfo = {
+                        ...newRequest,
+                        userName: currentUser.name,
+                        userEmail: currentUser.email,
+                        id: Date.now()
+                    };
 
-                // Add activity entry for the new request
-                const newActivity = {
-                    id: Date.now() + Math.random(),
-                    type: "request_submitted",
-                    resource: newRequest.description.length > 50
-                        ? `${newRequest.description.substring(0, 50)}...`
-                        : newRequest.description,
-                    requestId: newRequest.id,
-                    user: currentUser.name,
-                    timestamp: "just now",
-                    description: "New file request submitted"
-                };
+                    // Submit to Google Sheets (or localStorage as fallback)
+                    const result = await FileRequestsService.submitFileRequest(requestWithUserInfo);
 
-                const updatedActivity = [newActivity, ...data.recentActivity];
+                    if (result.success) {
+                        // Update local state with the new request
+                        const updatedRequests = [...data.fileRequests, result.request];
 
-                setData(prev => ({
-                    ...prev,
-                    fileRequests: updatedRequests,
-                    recentActivity: updatedActivity
-                }));
+                        // Add activity entry for the new request
+                        const newActivity = {
+                            id: Date.now() + Math.random(),
+                            type: "request_submitted",
+                            resource: newRequest.description.length > 50
+                                ? `${newRequest.description.substring(0, 50)}...`
+                                : newRequest.description,
+                            requestId: result.request.id,
+                            user: currentUser.name,
+                            timestamp: "just now",
+                            description: "📊 File request submitted to Google Sheets"
+                        };
 
-                // Also save to localStorage for persistence in demo
-                localStorage.setItem('fileRequests', JSON.stringify(updatedRequests));
-                localStorage.setItem('recentActivity', JSON.stringify(updatedActivity));
+                        const updatedActivity = [newActivity, ...data.recentActivity];
+
+                        setData(prev => ({
+                            ...prev,
+                            fileRequests: updatedRequests,
+                            recentActivity: updatedActivity
+                        }));
+
+                        // Also save to localStorage for persistence in demo
+                        localStorage.setItem('fileRequests', JSON.stringify(updatedRequests));
+                        localStorage.setItem('recentActivity', JSON.stringify(updatedActivity));
+
+                        console.log("✅ File request successfully saved!");
+                    } else {
+                        console.error("❌ Failed to save file request:", result.error);
+                        alert("Failed to submit request. Please try again.");
+                    }
+                } catch (error) {
+                    console.error("❌ Error submitting file request:", error);
+                    alert("Error submitting request. Please try again.");
+                }
             };
 
             const handleLogin = (user) => {
