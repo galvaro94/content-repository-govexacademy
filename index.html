@@ -2972,10 +2972,12 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                             console.log('NotificationBell: Button clicked, toggling dropdown');
                             setShowDropdown(!showDropdown);
                         }}
-                        className="relative p-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors"
+                        className="relative p-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors border border-red-500"
                         title="Notifications"
+                        style={{ minWidth: '40px', minHeight: '40px' }}
                     >
                         <Icon name="bell" size={16} />
+                        🔔
                         {unreadCount > 0 && (
                             <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#f85149] rounded-full flex items-center justify-center">
                                 <span className="text-xs text-white font-bold">
@@ -3096,11 +3098,16 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
             return (
                 <>
                     <button
-                        onClick={() => setShowModal(true)}
-                        className="p-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors"
+                        onClick={() => {
+                            console.log('SettingsButton: Button clicked, opening modal');
+                            setShowModal(true);
+                        }}
+                        className="p-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors border border-blue-500"
                         title="Settings"
+                        style={{ minWidth: '40px', minHeight: '40px' }}
                     >
                         <Icon name="settings" size={16} />
+                        ⚙️
                     </button>
 
                     {showModal && (
