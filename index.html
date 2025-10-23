@@ -695,6 +695,20 @@
                 { userId: 4, programId: 3, role: 'admin' },
                 { userId: 4, programId: 4, role: 'admin' },
                 { userId: 4, programId: 5, role: 'admin' },
+                { userId: 5, programId: 1, role: 'admin' }, // Admin User (.com) - All
+                { userId: 5, programId: 2, role: 'admin' },
+                { userId: 5, programId: 3, role: 'admin' },
+                { userId: 5, programId: 4, role: 'admin' },
+                { userId: 5, programId: 5, role: 'admin' },
+                { userId: 6, programId: 1, role: 'member' }, // Test User - CDA
+                { userId: 6, programId: 4, role: 'member' }, // Test User - AI
+                { userId: 7, programId: 2, role: 'member' }, // Demo User - BHCLI
+                { userId: 7, programId: 5, role: 'member' }, // Demo User - SGC
+                { userId: 8, programId: 3, role: 'member' }, // General User - WWC
+                { userId: 9, programId: 1, role: 'manager' }, // Project Manager - CDA
+                { userId: 9, programId: 2, role: 'manager' }, // Project Manager - BHCLI
+                { userId: 10, programId: 4, role: 'member' }, // Senior Analyst - AI
+                { userId: 10, programId: 5, role: 'member' }, // Senior Analyst - SGC
             ]
         };
 
@@ -711,12 +725,19 @@
 
             // Get programs user has access to
             getUserPrograms(userId) {
+                console.log('NotificationService.getUserPrograms called', { userId, NOTIFICATIONS_V1_ENABLED });
                 if (!NOTIFICATIONS_V1_ENABLED) return [];
+
                 const memberships = NOTIFICATION_DATABASE.programMemberships.filter(m => m.userId === userId);
-                return memberships.map(m => ({
+                console.log('Found memberships for user', { userId, memberships });
+
+                const programs = memberships.map(m => ({
                     ...MOCK_DATABASE.programs.find(p => p.id === m.programId),
                     membershipRole: m.role
                 })).filter(Boolean);
+
+                console.log('Mapped programs for user', { userId, programs });
+                return programs;
             },
 
             // Get user's notification preferences for a program
@@ -2880,16 +2901,28 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
 
             // Load notifications when component mounts or user changes
             useEffect(() => {
-                if (currentUser && NOTIFICATIONS_V1_ENABLED) {
-                    const userNotifications = NotificationService.getUserNotifications(currentUser.id);
-                    setNotifications(userNotifications);
+                console.log('NotificationBell: Component mounted/updated', {
+                    currentUser,
+                    NOTIFICATIONS_V1_ENABLED,
+                    userId: currentUser?.id
+                });
 
-                    // Calculate unread count (last 24 hours)
-                    const dayAgo = new Date();
-                    dayAgo.setDate(dayAgo.getDate() - 1);
-                    const recentEvents = [...userNotifications.as_needed, ...userNotifications.this_week]
-                        .filter(event => event.occurredAt >= dayAgo);
-                    setUnreadCount(recentEvents.length);
+                if (currentUser && NOTIFICATIONS_V1_ENABLED) {
+                    try {
+                        const userNotifications = NotificationService.getUserNotifications(currentUser.id);
+                        console.log('NotificationBell: Loaded notifications', userNotifications);
+                        setNotifications(userNotifications);
+
+                        // Calculate unread count (last 24 hours)
+                        const dayAgo = new Date();
+                        dayAgo.setDate(dayAgo.getDate() - 1);
+                        const recentEvents = [...userNotifications.as_needed, ...userNotifications.this_week]
+                            .filter(event => event.occurredAt >= dayAgo);
+                        setUnreadCount(recentEvents.length);
+                        console.log('NotificationBell: Unread count', recentEvents.length);
+                    } catch (error) {
+                        console.error('NotificationBell: Error loading notifications', error);
+                    }
                 }
             }, [currentUser]);
 
@@ -2921,12 +2954,24 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 setShowDropdown(false);
             };
 
-            if (!NOTIFICATIONS_V1_ENABLED) return null;
+            if (!NOTIFICATIONS_V1_ENABLED) {
+                console.log('NotificationBell: Feature disabled, returning null');
+                return null;
+            }
+
+            console.log('NotificationBell: Rendering with', {
+                totalNotifications,
+                unreadCount,
+                showDropdown
+            });
 
             return (
                 <div className="relative">
                     <button
-                        onClick={() => setShowDropdown(!showDropdown)}
+                        onClick={() => {
+                            console.log('NotificationBell: Button clicked, toggling dropdown');
+                            setShowDropdown(!showDropdown);
+                        }}
                         className="relative p-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors"
                         title="Notifications"
                     >
@@ -3040,6 +3085,12 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
         function SettingsButton({ currentUser }) {
             const [showModal, setShowModal] = useState(false);
 
+            console.log('SettingsButton: Rendering', {
+                currentUser,
+                NOTIFICATIONS_V1_ENABLED,
+                showModal
+            });
+
             if (!NOTIFICATIONS_V1_ENABLED) return null;
 
             return (
@@ -3074,15 +3125,24 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
             const permissions = NotificationService.getUserPermissions(currentUser);
             const userPrograms = NotificationService.getUserPrograms(currentUser.id);
 
+            console.log('SettingsModal: User data loaded', {
+                currentUser,
+                permissions,
+                userPrograms,
+                userProgramsLength: userPrograms.length
+            });
+
             // Load user preferences for each program
             const [programPreferences, setProgramPreferences] = useState({});
 
             useEffect(() => {
+                console.log('SettingsModal: Loading preferences for programs', userPrograms);
                 if (userPrograms.length > 0) {
                     const prefs = {};
                     userPrograms.forEach(program => {
                         prefs[program.id] = NotificationService.getUserPreferences(currentUser.id, program.id);
                     });
+                    console.log('SettingsModal: Loaded preferences', prefs);
                     setProgramPreferences(prefs);
                 }
             }, [currentUser.id, userPrograms]);
