@@ -70,7 +70,12 @@
         // - Get your SHEET_ID from your Google Sheets URL
         // - Adjust the RANGE to match your data location
         //
-        // STEP 2: For File Requests (optional):
+        // STEP 2: Google Sheets Column Structure (A-N):
+        // A: Resource Name | B: Description | C: English Link | D: Spanish Link
+        // E: Portuguese Link | F: Italian Link | G: GovEx or External Resource | H: City Shared?
+        // I: Topics | J: Programs Used | K: File Type | L: Fillable? | M: Authors | N: Last Updated
+        //
+        // STEP 3: For File Requests (optional):
         // - Create a separate Google Sheet for file requests
         // - Replace 'YOUR_FILE_REQUESTS_SHEET_ID' below
         // - Headers: Timestamp, Name, Email, Description, Program, Additional Context, Status, Priority
@@ -1097,7 +1102,7 @@
         const GOOGLE_SHEETS_CONFIG = {
             API_KEY: 'AIzaSyBUa8W2lZXxRNfqJ3Ov0MWUPeTd0TjkRhg',
             SHEET_ID: '1GSqiViIPp4GPAe4ugZ2ImXShsU1NP37CjT_I3Ck-AR4',
-            RANGE: 'Sheet1!A2:M', // Gets columns A through M starting from row 2 (skipping headers)
+            RANGE: 'Sheet1!A2:N', // Gets columns A through N starting from row 2 (skipping headers)
         };
 
         // File Requests Google Sheets Configuration
@@ -1166,6 +1171,7 @@
                         portugueseLink = '',
                         italianLink = '',
                         govexOrExternal = '',
+                        cityShared = '',
                         topics = '',
                         programsUsed = '',
                         fileType = '',
@@ -1183,6 +1189,7 @@
                         portugueseLink: portugueseLink.trim() || null,
                         italianLink: italianLink.trim() || null,
                         govexOrExternal: govexOrExternal.trim(),
+                        cityShared: this.parseBooleanField(cityShared),
                         topics: this.parseArrayField(topics),
                         programsUsed: this.parseArrayField(programsUsed),
                         fileType: fileType.trim(),
