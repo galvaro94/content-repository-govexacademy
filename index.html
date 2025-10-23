@@ -1117,6 +1117,8 @@
                     return MOCK_DATABASE;
                 }
 
+                console.log('🔄 Fetching data from Google Sheets...', { SHEET_ID, RANGE });
+
                 try {
                     const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
                     const response = await fetch(url);
@@ -1126,7 +1128,27 @@
                     }
 
                     const data = await response.json();
-                    return this.transformSheetData(data.values || []);
+                    const values = data.values || [];
+
+                    console.log('📊 Google Sheets response:', {
+                        totalRows: values.length,
+                        firstRow: values[0],
+                        sheetData: data
+                    });
+
+                    // If no data is returned from Google Sheets, fall back to mock data
+                    if (values.length === 0) {
+                        console.warn('⚠️ No data returned from Google Sheets, using mock data');
+                        return MOCK_DATABASE;
+                    }
+
+                    const transformedData = this.transformSheetData(values);
+                    console.log('✅ Transformed data:', {
+                        resourceCount: transformedData.resources.length,
+                        sampleResource: transformedData.resources[0]
+                    });
+
+                    return transformedData;
                 } catch (error) {
                     console.error('Error fetching from Google Sheets:', error);
                     throw error;
@@ -1194,9 +1216,13 @@
         // Main data fetching function
         async function fetchDataFromGoogleSheets() {
             try {
-                return await GoogleSheetsService.fetchSheetData();
+                console.log('🚀 Starting data fetch...');
+                const result = await GoogleSheetsService.fetchSheetData();
+                console.log('✅ Data fetch completed successfully');
+                return result;
             } catch (error) {
-                console.error('Failed to fetch data from Google Sheets, falling back to mock data:', error);
+                console.error('❌ Failed to fetch data from Google Sheets, falling back to mock data:', error);
+                console.log('🔄 Using mock data with', MOCK_DATABASE.resources.length, 'resources');
                 return MOCK_DATABASE;
             }
         }
@@ -4983,13 +5009,32 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
 
                 try {
                     const newData = await fetchDataFromGoogleSheets();
+
+                    // Validate that we have proper data structure
+                    if (!newData || !newData.resources || !Array.isArray(newData.resources)) {
+                        throw new Error('Invalid data structure returned from Google Sheets');
+                    }
+
+                    console.log('📦 Setting new data:', {
+                        resourceCount: newData.resources.length,
+                        programCount: newData.programs?.length || 0,
+                        hasTopics: newData.resources.some(r => r.topics && r.topics.length > 0)
+                    });
+
                     setData(newData);
-                    setPrograms(newData.programs);
+                    setPrograms(newData.programs || MOCK_DATABASE.programs);
                     setResources(newData.resources);
                     setLastUpdated(new Date());
+
+                    console.log('✅ Data successfully loaded and set in state');
                 } catch (error) {
-                    console.error('Error loading data from Google Sheets:', error);
-                    setDataError('Failed to load data from Google Sheets. Using cached data.');
+                    console.error('❌ Error loading data from Google Sheets:', error);
+                    setDataError('Failed to load data from Google Sheets. Using mock data.');
+
+                    // Ensure we fall back to mock data
+                    setData(MOCK_DATABASE);
+                    setPrograms(MOCK_DATABASE.programs);
+                    setResources(MOCK_DATABASE.resources);
                 } finally {
                     setIsLoading(false);
                 }
