@@ -531,6 +531,405 @@
 
         const availableRoles = ['Administrator', 'Program Manager', 'Data Analyst', 'Research Director', 'Analyst', 'Coordinator', 'Researcher', 'Project Manager', 'Senior Data Analyst'];
 
+        // ==========================================
+        // NOTIFICATION & REPORTING SYSTEM DATA MODEL
+        // ==========================================
+
+        // Feature flag for notifications system
+        const NOTIFICATIONS_V1_ENABLED = true;
+
+        // Role permissions mapping
+        const ROLE_PERMISSIONS = {
+            'Administrator': { level: 'admin', canViewAll: true, canManagePrograms: true, canSendAsNeeded: true },
+            'Program Manager': { level: 'manager', canViewAll: false, canManagePrograms: true, canSendAsNeeded: true },
+            'Project Manager': { level: 'manager', canViewAll: false, canManagePrograms: true, canSendAsNeeded: true },
+            'Research Director': { level: 'manager', canViewAll: false, canManagePrograms: true, canSendAsNeeded: true },
+            'Data Analyst': { level: 'user', canViewAll: false, canManagePrograms: false, canSendAsNeeded: false },
+            'Senior Data Analyst': { level: 'user', canViewAll: false, canManagePrograms: false, canSendAsNeeded: false },
+            'Analyst': { level: 'user', canViewAll: false, canManagePrograms: false, canSendAsNeeded: false },
+            'Coordinator': { level: 'user', canViewAll: false, canManagePrograms: false, canSendAsNeeded: false },
+            'Researcher': { level: 'user', canViewAll: false, canManagePrograms: false, canSendAsNeeded: false }
+        };
+
+        // Default notification preferences
+        const DEFAULT_NOTIFICATION_PREFERENCES = {
+            weekly: { enabled: true, day: 1, time: '09:00' }, // Monday 9 AM
+            monthly: { enabled: false, day: 1, time: '09:00' }, // First of month
+            quarterly: { enabled: false, day: 1, time: '09:00' },
+            yearly: { enabled: false, day: 1, time: '09:00' },
+            as_needed: { enabled: true },
+            channels: ['email', 'in_app'],
+            timezone: 'America/New_York'
+        };
+
+        // Extended database structure for notifications
+        const NOTIFICATION_DATABASE = {
+            // Notification preferences per user per program
+            notificationPreferences: [
+                // Example: User 1 (Jane Doe - Program Manager) preferences
+                {
+                    userId: 1,
+                    programId: 1, // CDA
+                    cadence: 'weekly',
+                    enabled: true,
+                    channels: ['email', 'in_app'],
+                    digestDayOfWeek: 1, // Monday
+                    digestTime: '09:00',
+                    timezone: 'America/New_York'
+                },
+                {
+                    userId: 1,
+                    programId: 1,
+                    cadence: 'as_needed',
+                    enabled: true,
+                    channels: ['email', 'in_app'],
+                    timezone: 'America/New_York'
+                }
+            ],
+
+            // Report schedules
+            reportSchedules: [
+                {
+                    id: 1,
+                    userId: 4, // Admin
+                    scope: 'ALL',
+                    programIds: [],
+                    cadence: 'weekly',
+                    nextRunAt: new Date('2024-10-28T09:00:00-04:00'),
+                    timezone: 'America/New_York',
+                    enabled: true,
+                    createdAt: new Date('2024-10-01T09:00:00-04:00')
+                }
+            ],
+
+            // Notification events (change capture)
+            notificationEvents: [
+                {
+                    id: 1,
+                    resourceId: 1,
+                    changeType: 'updated',
+                    occurredAt: new Date('2024-10-23T14:30:00-04:00'),
+                    tagIds: [1, 2], // Data Inventory, Data Management
+                    programIds: [1, 2], // CDA, BHCLI
+                    userId: 3, // Sarah Miller
+                    details: 'Resource updated: A-to-Z Master Inventory'
+                },
+                {
+                    id: 2,
+                    resourceId: 2, // Project Proposal Template
+                    changeType: 'created',
+                    occurredAt: new Date('2024-10-23T10:15:00-04:00'),
+                    tagIds: [3], // Data Quality
+                    programIds: [2], // BHCLI
+                    userId: 1, // Jane Doe
+                    details: 'New resource added: Project Proposal Template'
+                },
+                {
+                    id: 3,
+                    resourceId: 4, // AI Implementation Roadmap
+                    changeType: 'updated',
+                    occurredAt: new Date('2024-10-23T09:45:00-04:00'),
+                    tagIds: [4], // Capacity Building
+                    programIds: [4], // AI
+                    userId: 2, // John Smith
+                    details: 'Resource updated: AI Implementation Roadmap'
+                },
+                {
+                    id: 4,
+                    resourceId: 6, // Performance Metrics Dashboard
+                    changeType: 'as_needed',
+                    occurredAt: new Date('2024-10-23T16:20:00-04:00'),
+                    tagIds: [1, 5], // Data Inventory, Transparency
+                    programIds: [5], // SGC
+                    userId: 3, // Sarah Miller
+                    details: 'Urgent: Performance Metrics Dashboard requires immediate attention'
+                },
+                {
+                    id: 5,
+                    resourceId: 7, // Open Data Policy Framework
+                    changeType: 'updated',
+                    occurredAt: new Date('2024-10-22T11:30:00-04:00'),
+                    tagIds: [5, 6], // Transparency, External Stakeholders
+                    programIds: [3], // WWC
+                    userId: 1, // Jane Doe
+                    details: 'Resource updated: Open Data Policy Framework'
+                }
+            ],
+
+            // Generated digests (materialized for history)
+            digests: [
+                {
+                    id: 1,
+                    userId: 1,
+                    cadence: 'weekly',
+                    windowStart: new Date('2024-10-14T00:00:00-04:00'),
+                    windowEnd: new Date('2024-10-21T23:59:59-04:00'),
+                    programIds: [1, 2],
+                    itemCount: 3,
+                    generatedAt: new Date('2024-10-21T09:00:00-04:00'),
+                    events: [1, 2]
+                }
+            ],
+
+            // Delivery log
+            deliveryLog: [
+                {
+                    id: 1,
+                    userId: 1,
+                    digestId: 1,
+                    channel: 'email',
+                    status: 'sent',
+                    sentAt: new Date('2024-10-21T09:05:00-04:00'),
+                    details: 'Weekly digest delivered successfully'
+                }
+            ],
+
+            // Program-user associations (who has access to which programs)
+            programMemberships: [
+                { userId: 1, programId: 1, role: 'manager' }, // Jane Doe - CDA
+                { userId: 1, programId: 2, role: 'manager' }, // Jane Doe - BHCLI
+                { userId: 2, programId: 1, role: 'member' }, // John Smith - CDA
+                { userId: 3, programId: 3, role: 'manager' }, // Sarah Miller - WWC
+                { userId: 4, programId: 1, role: 'admin' }, // Admin - All
+                { userId: 4, programId: 2, role: 'admin' },
+                { userId: 4, programId: 3, role: 'admin' },
+                { userId: 4, programId: 4, role: 'admin' },
+                { userId: 4, programId: 5, role: 'admin' },
+            ]
+        };
+
+        // ==========================================
+        // NOTIFICATION SYSTEM SERVICES & HELPERS
+        // ==========================================
+
+        // Notification service functions
+        const NotificationService = {
+            // Get user's role permissions
+            getUserPermissions(user) {
+                return ROLE_PERMISSIONS[user?.role] || ROLE_PERMISSIONS['Researcher'];
+            },
+
+            // Get programs user has access to
+            getUserPrograms(userId) {
+                if (!NOTIFICATIONS_V1_ENABLED) return [];
+                const memberships = NOTIFICATION_DATABASE.programMemberships.filter(m => m.userId === userId);
+                return memberships.map(m => ({
+                    ...MOCK_DATABASE.programs.find(p => p.id === m.programId),
+                    membershipRole: m.role
+                })).filter(Boolean);
+            },
+
+            // Get user's notification preferences for a program
+            getUserPreferences(userId, programId) {
+                const prefs = NOTIFICATION_DATABASE.notificationPreferences.filter(
+                    p => p.userId === userId && p.programId === programId
+                );
+
+                if (prefs.length === 0) {
+                    return this.createDefaultPreferences(userId, programId);
+                }
+
+                return prefs.reduce((acc, pref) => {
+                    acc[pref.cadence] = pref;
+                    return acc;
+                }, {});
+            },
+
+            // Create default preferences for a user-program combination
+            createDefaultPreferences(userId, programId) {
+                const defaults = {};
+                Object.entries(DEFAULT_NOTIFICATION_PREFERENCES).forEach(([cadence, config]) => {
+                    if (typeof config === 'object' && config.enabled !== undefined) {
+                        defaults[cadence] = {
+                            userId,
+                            programId,
+                            cadence,
+                            enabled: config.enabled,
+                            channels: DEFAULT_NOTIFICATION_PREFERENCES.channels,
+                            digestDayOfWeek: config.day,
+                            digestTime: config.time,
+                            timezone: DEFAULT_NOTIFICATION_PREFERENCES.timezone
+                        };
+                    }
+                });
+                return defaults;
+            },
+
+            // Save user preferences
+            saveUserPreferences(userId, programId, preferences) {
+                // Remove existing preferences for this user-program
+                NOTIFICATION_DATABASE.notificationPreferences =
+                    NOTIFICATION_DATABASE.notificationPreferences.filter(
+                        p => !(p.userId === userId && p.programId === programId)
+                    );
+
+                // Add new preferences
+                Object.values(preferences).forEach(pref => {
+                    if (pref.enabled) {
+                        NOTIFICATION_DATABASE.notificationPreferences.push(pref);
+                    }
+                });
+
+                return true;
+            },
+
+            // Enable notifications with default settings
+            enableNotificationsForUser(userId) {
+                const userPrograms = this.getUserPrograms(userId);
+                let created = 0;
+
+                userPrograms.forEach(program => {
+                    const existingPrefs = this.getUserPreferences(userId, program.id);
+                    if (Object.keys(existingPrefs).length === 0) {
+                        const defaultPrefs = this.createDefaultPreferences(userId, program.id);
+                        this.saveUserPreferences(userId, program.id, defaultPrefs);
+                        created++;
+                    }
+                });
+
+                return { success: true, programsConfigured: created };
+            },
+
+            // Capture resource change event
+            captureResourceChange(resourceId, changeType, userId, details = '') {
+                const resource = MOCK_DATABASE.resources.find(r => r.id === resourceId);
+                if (!resource) return null;
+
+                // Map topics to tag IDs (simplified)
+                const tagIds = resource.topics ? resource.topics.map((_, index) => index + 1) : [];
+
+                // Map programs used to program IDs
+                const programIds = this.mapProgramsUsedToIds(resource.programsUsed || []);
+
+                const event = {
+                    id: NOTIFICATION_DATABASE.notificationEvents.length + 1,
+                    resourceId,
+                    changeType,
+                    occurredAt: new Date(),
+                    tagIds,
+                    programIds,
+                    userId,
+                    details: details || `Resource ${changeType}: ${resource.resourceName}`
+                };
+
+                NOTIFICATION_DATABASE.notificationEvents.push(event);
+
+                // Trigger as-needed notifications if applicable
+                if (changeType === 'created' || changeType === 'as_needed') {
+                    this.triggerAsNeededNotifications(event);
+                }
+
+                return event;
+            },
+
+            // Map program codes to IDs
+            mapProgramsUsedToIds(programsUsed) {
+                const mapping = {
+                    'CDA1': 1, 'CDA2': 1, 'CDA3': 1, 'CDA4': 1,
+                    'BH7': 2, 'BH8': 2, 'BH9': 2, 'BHCLI': 2,
+                    'WWC': 3,
+                    'AI1': 4, 'AI2': 4,
+                    'SGC': 5
+                };
+
+                return [...new Set(programsUsed.map(p => mapping[p]).filter(Boolean))];
+            },
+
+            // Trigger immediate as-needed notifications
+            triggerAsNeededNotifications(event) {
+                // Find users who should receive as-needed notifications for these programs
+                const targetUsers = NOTIFICATION_DATABASE.notificationPreferences.filter(pref =>
+                    pref.cadence === 'as_needed' &&
+                    pref.enabled &&
+                    event.programIds.includes(pref.programId)
+                );
+
+                targetUsers.forEach(pref => {
+                    this.deliverNotification(pref.userId, 'as_needed', [event], 'immediate');
+                });
+            },
+
+            // Generate weekly digest for a user
+            generateWeeklyDigest(userId) {
+                const userPrograms = this.getUserPrograms(userId);
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+
+                const relevantEvents = NOTIFICATION_DATABASE.notificationEvents.filter(event =>
+                    event.occurredAt >= weekAgo &&
+                    event.programIds.some(pid => userPrograms.some(p => p.id === pid))
+                );
+
+                if (relevantEvents.length === 0) return null;
+
+                const digest = {
+                    id: NOTIFICATION_DATABASE.digests.length + 1,
+                    userId,
+                    cadence: 'weekly',
+                    windowStart: weekAgo,
+                    windowEnd: new Date(),
+                    programIds: userPrograms.map(p => p.id),
+                    itemCount: relevantEvents.length,
+                    generatedAt: new Date(),
+                    events: relevantEvents.map(e => e.id)
+                };
+
+                NOTIFICATION_DATABASE.digests.push(digest);
+                return digest;
+            },
+
+            // Deliver notification via specified channels
+            deliverNotification(userId, type, events, priority = 'normal') {
+                const user = USERS.find(u => u.id === userId);
+                if (!user) return false;
+
+                const deliveryRecord = {
+                    id: NOTIFICATION_DATABASE.deliveryLog.length + 1,
+                    userId,
+                    type,
+                    channel: 'in_app', // Primary channel for demo
+                    status: 'sent',
+                    sentAt: new Date(),
+                    details: `${type} notification with ${events.length} item(s)`,
+                    events: events.map(e => e.id || e)
+                };
+
+                NOTIFICATION_DATABASE.deliveryLog.push(deliveryRecord);
+                return deliveryRecord;
+            },
+
+            // Get notifications for user (for bell dropdown and notifications page)
+            getUserNotifications(userId, since = null) {
+                const userPrograms = this.getUserPrograms(userId);
+                const programIds = userPrograms.map(p => p.id);
+
+                let events = NOTIFICATION_DATABASE.notificationEvents.filter(event =>
+                    event.programIds.some(pid => programIds.includes(pid))
+                );
+
+                if (since) {
+                    events = events.filter(event => event.occurredAt >= since);
+                }
+
+                // Group by cadence/timeframe
+                const grouped = {
+                    as_needed: events.filter(e => e.changeType === 'as_needed'),
+                    this_week: events.filter(e => {
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        return e.occurredAt >= weekAgo && e.changeType !== 'as_needed';
+                    }),
+                    older: events.filter(e => {
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        return e.occurredAt < weekAgo && e.changeType !== 'as_needed';
+                    })
+                };
+
+                return grouped;
+            }
+        };
+
         // Bulk Upload Helper Functions
         function validateEmail(email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -2469,6 +2868,754 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
             );
         }
 
+        // ==========================================
+        // NOTIFICATION UI COMPONENTS
+        // ==========================================
+
+        // Notification Bell Component
+        function NotificationBell({ currentUser }) {
+            const [showDropdown, setShowDropdown] = useState(false);
+            const [notifications, setNotifications] = useState({ as_needed: [], this_week: [], older: [] });
+            const [unreadCount, setUnreadCount] = useState(0);
+
+            // Load notifications when component mounts or user changes
+            useEffect(() => {
+                if (currentUser && NOTIFICATIONS_V1_ENABLED) {
+                    const userNotifications = NotificationService.getUserNotifications(currentUser.id);
+                    setNotifications(userNotifications);
+
+                    // Calculate unread count (last 24 hours)
+                    const dayAgo = new Date();
+                    dayAgo.setDate(dayAgo.getDate() - 1);
+                    const recentEvents = [...userNotifications.as_needed, ...userNotifications.this_week]
+                        .filter(event => event.occurredAt >= dayAgo);
+                    setUnreadCount(recentEvents.length);
+                }
+            }, [currentUser]);
+
+            const totalNotifications = notifications.as_needed.length + notifications.this_week.length;
+
+            const formatTimeAgo = (date) => {
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                return `${diffDays}d ago`;
+            };
+
+            const getResourceById = (resourceId) => {
+                // Try to find in current resources first, then fallback to mock data
+                const allResources = [...(window.currentResources || []), ...MOCK_DATABASE.resources];
+                return allResources.find(r => r.id === resourceId);
+            };
+
+            const handleNotificationClick = (event) => {
+                const resource = getResourceById(event.resourceId);
+                if (resource && resource.englishLink) {
+                    window.open(resource.englishLink, '_blank', 'noopener,noreferrer');
+                }
+                setShowDropdown(false);
+            };
+
+            if (!NOTIFICATIONS_V1_ENABLED) return null;
+
+            return (
+                <div className="relative">
+                    <button
+                        onClick={() => setShowDropdown(!showDropdown)}
+                        className="relative p-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors"
+                        title="Notifications"
+                    >
+                        <Icon name="bell" size={16} />
+                        {unreadCount > 0 && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#f85149] rounded-full flex items-center justify-center">
+                                <span className="text-xs text-white font-bold">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            </div>
+                        )}
+                    </button>
+
+                    {showDropdown && (
+                        <div className="absolute right-0 mt-2 w-96 bg-[#161b22] border border-[#30363d] rounded-lg shadow-lg z-50 max-h-96 overflow-hidden">
+                            <div className="p-4 border-b border-[#30363d]">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-[#e6edf3]">Notifications</h3>
+                                    <span className="text-sm text-[#8b949e]">{totalNotifications} items</span>
+                                </div>
+                            </div>
+
+                            <div className="max-h-80 overflow-y-auto">
+                                {/* As Needed Notifications */}
+                                {notifications.as_needed.length > 0 && (
+                                    <div className="p-3 border-b border-[#30363d]">
+                                        <h4 className="text-sm font-medium text-[#f85149] mb-2">Urgent Updates</h4>
+                                        {notifications.as_needed.map(event => {
+                                            const resource = getResourceById(event.resourceId);
+                                            return (
+                                                <div
+                                                    key={event.id}
+                                                    onClick={() => handleNotificationClick(event)}
+                                                    className="p-2 hover:bg-[#0d1117] rounded cursor-pointer transition-colors"
+                                                >
+                                                    <div className="flex items-start space-x-2">
+                                                        <div className="w-2 h-2 bg-[#f85149] rounded-full mt-2 flex-shrink-0"></div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm text-[#e6edf3] font-medium truncate">
+                                                                {resource?.resourceName || 'Unknown Resource'}
+                                                            </p>
+                                                            <p className="text-xs text-[#8b949e] mt-1">{event.details}</p>
+                                                            <p className="text-xs text-[#8b949e] mt-1">{formatTimeAgo(event.occurredAt)}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* This Week Notifications */}
+                                {notifications.this_week.length > 0 && (
+                                    <div className="p-3 border-b border-[#30363d]">
+                                        <h4 className="text-sm font-medium text-[#58a6ff] mb-2">This Week</h4>
+                                        {notifications.this_week.slice(0, 5).map(event => {
+                                            const resource = getResourceById(event.resourceId);
+                                            return (
+                                                <div
+                                                    key={event.id}
+                                                    onClick={() => handleNotificationClick(event)}
+                                                    className="p-2 hover:bg-[#0d1117] rounded cursor-pointer transition-colors"
+                                                >
+                                                    <div className="flex items-start space-x-2">
+                                                        <div className="w-2 h-2 bg-[#58a6ff] rounded-full mt-2 flex-shrink-0"></div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm text-[#e6edf3] truncate">
+                                                                {resource?.resourceName || 'Unknown Resource'}
+                                                            </p>
+                                                            <p className="text-xs text-[#8b949e] mt-1">{event.details}</p>
+                                                            <p className="text-xs text-[#8b949e] mt-1">{formatTimeAgo(event.occurredAt)}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Empty State */}
+                                {totalNotifications === 0 && (
+                                    <div className="p-6 text-center">
+                                        <Icon name="bell-off" size={32} className="text-[#8b949e] mx-auto mb-2" />
+                                        <p className="text-[#8b949e] text-sm">No new notifications</p>
+                                        <p className="text-[#8b949e] text-xs mt-1">We'll notify you when there are updates</p>
+                                    </div>
+                                )}
+
+                                {/* Footer */}
+                                {totalNotifications > 0 && (
+                                    <div className="p-3 border-t border-[#30363d]">
+                                        <button
+                                            onClick={() => {
+                                                setShowDropdown(false);
+                                                // Navigate to notifications page (TODO: implement routing)
+                                            }}
+                                            className="w-full text-center text-sm text-[#58a6ff] hover:text-[#79c0ff] transition-colors"
+                                        >
+                                            View all notifications
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Settings Button Component
+        function SettingsButton({ currentUser }) {
+            const [showModal, setShowModal] = useState(false);
+
+            if (!NOTIFICATIONS_V1_ENABLED) return null;
+
+            return (
+                <>
+                    <button
+                        onClick={() => setShowModal(true)}
+                        className="p-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors"
+                        title="Settings"
+                    >
+                        <Icon name="settings" size={16} />
+                    </button>
+
+                    {showModal && (
+                        <SettingsModal
+                            currentUser={currentUser}
+                            onClose={() => setShowModal(false)}
+                        />
+                    )}
+                </>
+            );
+        }
+
+        // Settings Modal Component
+        function SettingsModal({ currentUser, onClose }) {
+            const [activeTab, setActiveTab] = useState('notifications');
+            const [isEnabling, setIsEnabling] = useState(false);
+            const [showSuccessToast, setShowSuccessToast] = useState(false);
+            const [showUndoToast, setShowUndoToast] = useState(false);
+            const [preferencesModified, setPreferencesModified] = useState(false);
+
+            // Get user permissions
+            const permissions = NotificationService.getUserPermissions(currentUser);
+            const userPrograms = NotificationService.getUserPrograms(currentUser.id);
+
+            // Load user preferences for each program
+            const [programPreferences, setProgramPreferences] = useState({});
+
+            useEffect(() => {
+                if (userPrograms.length > 0) {
+                    const prefs = {};
+                    userPrograms.forEach(program => {
+                        prefs[program.id] = NotificationService.getUserPreferences(currentUser.id, program.id);
+                    });
+                    setProgramPreferences(prefs);
+                }
+            }, [currentUser.id, userPrograms]);
+
+            const handleEnableNotifications = async () => {
+                setIsEnabling(true);
+                try {
+                    const result = NotificationService.enableNotificationsForUser(currentUser.id);
+                    if (result.success) {
+                        setShowSuccessToast(true);
+                        setPreferencesModified(true);
+
+                        // Refresh preferences
+                        const prefs = {};
+                        userPrograms.forEach(program => {
+                            prefs[program.id] = NotificationService.getUserPreferences(currentUser.id, program.id);
+                        });
+                        setProgramPreferences(prefs);
+
+                        setTimeout(() => setShowSuccessToast(false), 5000);
+                    }
+                } catch (error) {
+                    console.error('Failed to enable notifications:', error);
+                } finally {
+                    setIsEnabling(false);
+                }
+            };
+
+            const handleUndoEnable = () => {
+                // Reset preferences (simplified for demo)
+                userPrograms.forEach(program => {
+                    NotificationService.saveUserPreferences(currentUser.id, program.id, {});
+                });
+
+                setProgramPreferences({});
+                setPreferencesModified(false);
+                setShowUndoToast(true);
+                setTimeout(() => setShowUndoToast(false), 3000);
+            };
+
+            const updateProgramPreference = (programId, cadence, updates) => {
+                const currentPrefs = { ...programPreferences };
+                if (!currentPrefs[programId]) {
+                    currentPrefs[programId] = NotificationService.createDefaultPreferences(currentUser.id, programId);
+                }
+
+                currentPrefs[programId][cadence] = {
+                    ...currentPrefs[programId][cadence],
+                    ...updates
+                };
+
+                setProgramPreferences(currentPrefs);
+
+                // Save to service
+                NotificationService.saveUserPreferences(currentUser.id, programId, currentPrefs[programId]);
+            };
+
+            const hasAnyPreferences = Object.keys(programPreferences).length > 0 &&
+                Object.values(programPreferences).some(prefs => Object.keys(prefs).length > 0);
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay">
+                    <div className="bg-[#161b22] border border-[#30363d] rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden modal-content">
+                        {/* Header */}
+                        <div className="p-6 border-b border-[#30363d]">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-semibold text-[#e6edf3]">Settings</h2>
+                                <button
+                                    onClick={onClose}
+                                    className="text-[#8b949e] hover:text-[#e6edf3] transition-colors"
+                                >
+                                    <Icon name="x" size={24} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Success Toast */}
+                        {showSuccessToast && (
+                            <div className="mx-6 mt-4 p-3 bg-[#238636] bg-opacity-20 border border-[#238636] rounded-lg flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                    <Icon name="check-circle" className="text-[#238636]" size={16} />
+                                    <span className="text-[#238636] text-sm">
+                                        Notifications enabled! Default settings applied to {userPrograms.length} program(s).
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={handleUndoEnable}
+                                    className="text-[#238636] hover:text-[#2ea043] text-sm underline"
+                                >
+                                    Undo
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Undo Toast */}
+                        {showUndoToast && (
+                            <div className="mx-6 mt-4 p-3 bg-[#8b949e] bg-opacity-20 border border-[#8b949e] rounded-lg flex items-center space-x-2">
+                                <Icon name="info" className="text-[#8b949e]" size={16} />
+                                <span className="text-[#8b949e] text-sm">
+                                    Notification settings have been reset.
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Tabs */}
+                        <div className="flex border-b border-[#30363d] px-6">
+                            <button
+                                onClick={() => setActiveTab('notifications')}
+                                className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+                                    activeTab === 'notifications'
+                                        ? 'text-[#58a6ff] border-[#58a6ff]'
+                                        : 'text-[#8b949e] border-transparent hover:text-[#e6edf3]'
+                                }`}
+                            >
+                                Notifications
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('reports')}
+                                className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+                                    activeTab === 'reports'
+                                        ? 'text-[#58a6ff] border-[#58a6ff]'
+                                        : 'text-[#8b949e] border-transparent hover:text-[#e6edf3]'
+                                }`}
+                            >
+                                Reports
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6 max-h-[60vh] overflow-y-auto">
+                            {activeTab === 'notifications' && (
+                                <NotificationSettings
+                                    currentUser={currentUser}
+                                    userPrograms={userPrograms}
+                                    programPreferences={programPreferences}
+                                    onUpdatePreference={updateProgramPreference}
+                                    hasAnyPreferences={hasAnyPreferences}
+                                    onEnableNotifications={handleEnableNotifications}
+                                    isEnabling={isEnabling}
+                                    permissions={permissions}
+                                />
+                            )}
+
+                            {activeTab === 'reports' && (
+                                <ReportSettings
+                                    currentUser={currentUser}
+                                    userPrograms={userPrograms}
+                                    permissions={permissions}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Notification Settings Component
+        function NotificationSettings({
+            currentUser,
+            userPrograms,
+            programPreferences,
+            onUpdatePreference,
+            hasAnyPreferences,
+            onEnableNotifications,
+            isEnabling,
+            permissions
+        }) {
+            const cadences = [
+                { key: 'weekly', label: 'Weekly Digest', description: 'Summary of changes every week' },
+                { key: 'monthly', label: 'Monthly Summary', description: 'Monthly overview of updates' },
+                { key: 'quarterly', label: 'Quarterly Report', description: 'Quarterly program updates' },
+                { key: 'yearly', label: 'Annual Review', description: 'Annual resource summary' },
+                { key: 'as_needed', label: 'Urgent Updates', description: 'Immediate notifications for critical changes' }
+            ];
+
+            const timeOptions = [
+                { value: '08:00', label: '8:00 AM' },
+                { value: '09:00', label: '9:00 AM' },
+                { value: '10:00', label: '10:00 AM' },
+                { value: '12:00', label: '12:00 PM' },
+                { value: '17:00', label: '5:00 PM' }
+            ];
+
+            const dayOptions = [
+                { value: 1, label: 'Monday' },
+                { value: 2, label: 'Tuesday' },
+                { value: 3, label: 'Wednesday' },
+                { value: 4, label: 'Thursday' },
+                { value: 5, label: 'Friday' }
+            ];
+
+            return (
+                <div className="space-y-6">
+                    {/* Enable Notifications Section */}
+                    {!hasAnyPreferences && (
+                        <div className="p-6 bg-[#0d1117] border border-[#30363d] rounded-lg">
+                            <div className="text-center">
+                                <Icon name="bell" size={48} className="text-[#58a6ff] mx-auto mb-4" />
+                                <h3 className="text-lg font-semibold text-[#e6edf3] mb-2">
+                                    Enable Notifications & Reports
+                                </h3>
+                                <p className="text-[#8b949e] mb-6 max-w-lg mx-auto">
+                                    Stay updated with automatic notifications about resource changes, weekly digests,
+                                    and program updates. We'll set up sensible defaults for all your programs.
+                                </p>
+                                <button
+                                    onClick={onEnableNotifications}
+                                    disabled={isEnabling}
+                                    className="px-6 py-3 bg-[#238636] hover:bg-[#2ea043] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium flex items-center space-x-2 mx-auto"
+                                >
+                                    {isEnabling ? (
+                                        <>
+                                            <Icon name="loader-2" size={16} className="animate-spin" />
+                                            <span>Setting up...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Icon name="bell" size={16} />
+                                            <span>Enable Notifications & Reports</span>
+                                        </>
+                                    )}
+                                </button>
+                                <p className="text-xs text-[#8b949e] mt-4">
+                                    Default: Weekly digest on Monday at 9:00 AM + urgent updates
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Program-specific preferences */}
+                    {hasAnyPreferences && userPrograms.length > 0 && (
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-lg font-semibold text-[#e6edf3] mb-2">
+                                    Program Notification Preferences
+                                </h3>
+                                <p className="text-sm text-[#8b949e] mb-4">
+                                    Configure how you want to receive notifications for each program you're part of.
+                                </p>
+                            </div>
+
+                            {userPrograms.map(program => {
+                                const prefs = programPreferences[program.id] || {};
+                                return (
+                                    <div key={program.id} className="p-6 bg-[#0d1117] border border-[#30363d] rounded-lg">
+                                        <div className="flex items-center space-x-3 mb-6">
+                                            <div
+                                                className="w-4 h-4 rounded"
+                                                style={{ backgroundColor: program.color }}
+                                            ></div>
+                                            <h4 className="text-lg font-medium text-[#e6edf3]">{program.name}</h4>
+                                            <span className="text-sm text-[#8b949e]">({program.shortName})</span>
+                                            <span className="text-xs px-2 py-1 bg-[#30363d] text-[#8b949e] rounded">
+                                                {program.membershipRole}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {cadences.map(cadence => {
+                                                const pref = prefs[cadence.key] || { enabled: false };
+                                                return (
+                                                    <div key={cadence.key} className="space-y-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <label className="text-sm font-medium text-[#e6edf3]">
+                                                                    {cadence.label}
+                                                                </label>
+                                                                <p className="text-xs text-[#8b949e]">
+                                                                    {cadence.description}
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex items-center">
+                                                                <button
+                                                                    onClick={() => onUpdatePreference(program.id, cadence.key, {
+                                                                        enabled: !pref.enabled
+                                                                    })}
+                                                                    className={`w-12 h-6 rounded-full transition-colors ${
+                                                                        pref.enabled ? 'bg-[#238636]' : 'bg-[#30363d]'
+                                                                    }`}
+                                                                >
+                                                                    <div
+                                                                        className={`w-4 h-4 bg-white rounded-full transition-transform ${
+                                                                            pref.enabled ? 'translate-x-7' : 'translate-x-1'
+                                                                        }`}
+                                                                    ></div>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Time/day settings for periodic notifications */}
+                                                        {pref.enabled && cadence.key !== 'as_needed' && (
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                {(cadence.key === 'weekly' || cadence.key === 'monthly') && (
+                                                                    <div>
+                                                                        <label className="block text-xs text-[#8b949e] mb-1">
+                                                                            {cadence.key === 'weekly' ? 'Day' : 'Day of Month'}
+                                                                        </label>
+                                                                        <select
+                                                                            value={pref.digestDayOfWeek || 1}
+                                                                            onChange={(e) => onUpdatePreference(program.id, cadence.key, {
+                                                                                digestDayOfWeek: parseInt(e.target.value)
+                                                                            })}
+                                                                            className="w-full bg-[#161b22] border border-[#30363d] rounded px-2 py-1 text-[#e6edf3] text-xs"
+                                                                        >
+                                                                            {(cadence.key === 'weekly' ? dayOptions :
+                                                                              Array.from({length: 28}, (_, i) => ({ value: i + 1, label: `${i + 1}` }))
+                                                                            ).map(option => (
+                                                                                <option key={option.value} value={option.value}>
+                                                                                    {option.label}
+                                                                                </option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                )}
+                                                                <div>
+                                                                    <label className="block text-xs text-[#8b949e] mb-1">Time</label>
+                                                                    <select
+                                                                        value={pref.digestTime || '09:00'}
+                                                                        onChange={(e) => onUpdatePreference(program.id, cadence.key, {
+                                                                            digestTime: e.target.value
+                                                                        })}
+                                                                        className="w-full bg-[#161b22] border border-[#30363d] rounded px-2 py-1 text-[#e6edf3] text-xs"
+                                                                    >
+                                                                        {timeOptions.map(option => (
+                                                                            <option key={option.value} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Global Settings */}
+                    {hasAnyPreferences && (
+                        <div className="p-6 bg-[#0d1117] border border-[#30363d] rounded-lg">
+                            <h4 className="text-lg font-medium text-[#e6edf3] mb-4">Global Settings</h4>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-[#e6edf3] mb-2">
+                                        Notification Channels
+                                    </label>
+                                    <div className="flex flex-wrap gap-3">
+                                        {['email', 'in_app'].map(channel => (
+                                            <label key={channel} className="flex items-center space-x-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={true}
+                                                    disabled={channel === 'in_app'} // Always enabled for demo
+                                                    className="bg-[#161b22] border border-[#30363d] rounded"
+                                                />
+                                                <span className="text-sm text-[#e6edf3] capitalize">
+                                                    {channel.replace('_', '-')}
+                                                </span>
+                                                {channel === 'in_app' && (
+                                                    <span className="text-xs text-[#8b949e]">(always enabled)</span>
+                                                )}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#e6edf3] mb-2">
+                                        Timezone
+                                    </label>
+                                    <select
+                                        value="America/New_York"
+                                        disabled
+                                        className="bg-[#161b22] border border-[#30363d] rounded px-3 py-2 text-[#e6edf3] opacity-50"
+                                    >
+                                        <option value="America/New_York">Eastern Time (America/New_York)</option>
+                                    </select>
+                                    <p className="text-xs text-[#8b949e] mt-1">
+                                        Timezone configuration will be available in a future update.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Report Settings Component
+        function ReportSettings({ currentUser, userPrograms, permissions }) {
+            const [reportSchedules, setReportSchedules] = useState([]);
+
+            useEffect(() => {
+                // Load existing report schedules for this user
+                const userSchedules = NOTIFICATION_DATABASE.reportSchedules.filter(
+                    schedule => schedule.userId === currentUser.id
+                );
+                setReportSchedules(userSchedules);
+            }, [currentUser.id]);
+
+            const createReportSchedule = (scope, programIds, cadence) => {
+                const newSchedule = {
+                    id: Date.now(),
+                    userId: currentUser.id,
+                    scope,
+                    programIds,
+                    cadence,
+                    nextRunAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Next week
+                    timezone: 'America/New_York',
+                    enabled: true,
+                    createdAt: new Date()
+                };
+
+                NOTIFICATION_DATABASE.reportSchedules.push(newSchedule);
+                setReportSchedules([...reportSchedules, newSchedule]);
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div>
+                        <h3 className="text-lg font-semibold text-[#e6edf3] mb-2">
+                            Report Scheduling
+                        </h3>
+                        <p className="text-sm text-[#8b949e] mb-4">
+                            Configure automatic report generation and delivery for your programs.
+                        </p>
+                    </div>
+
+                    {/* Role-based access notice */}
+                    <div className="p-4 bg-[#0d1117] border border-[#30363d] rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                            <Icon name="shield" size={16} className="text-[#58a6ff]" />
+                            <span className="text-sm font-medium text-[#e6edf3]">
+                                Access Level: {permissions.level.toUpperCase()}
+                            </span>
+                        </div>
+                        <div className="text-xs text-[#8b949e] space-y-1">
+                            {permissions.canViewAll && <p>✓ Can create cross-program reports</p>}
+                            {permissions.canManagePrograms && <p>✓ Can create program-specific reports</p>}
+                            {!permissions.canViewAll && <p>• Limited to your assigned programs</p>}
+                        </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {permissions.canViewAll && (
+                            <button
+                                onClick={() => createReportSchedule('ALL', [], 'weekly')}
+                                className="p-4 bg-[#0d1117] border border-[#30363d] rounded-lg hover:border-[#58a6ff] transition-colors text-left"
+                            >
+                                <Icon name="globe" size={20} className="text-[#58a6ff] mb-2" />
+                                <h4 className="text-sm font-medium text-[#e6edf3] mb-1">
+                                    System-wide Weekly Report
+                                </h4>
+                                <p className="text-xs text-[#8b949e]">
+                                    All programs and resources activity summary
+                                </p>
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => createReportSchedule('PROGRAM', userPrograms.map(p => p.id), 'monthly')}
+                            disabled={userPrograms.length === 0}
+                            className="p-4 bg-[#0d1117] border border-[#30363d] rounded-lg hover:border-[#58a6ff] transition-colors text-left disabled:opacity-50"
+                        >
+                            <Icon name="users" size={20} className="text-[#58a6ff] mb-2" />
+                            <h4 className="text-sm font-medium text-[#e6edf3] mb-1">
+                                My Programs Monthly Report
+                            </h4>
+                            <p className="text-xs text-[#8b949e]">
+                                Activity summary for programs you manage
+                            </p>
+                        </button>
+                    </div>
+
+                    {/* Existing Schedules */}
+                    {reportSchedules.length > 0 && (
+                        <div>
+                            <h4 className="text-md font-medium text-[#e6edf3] mb-4">Active Report Schedules</h4>
+                            <div className="space-y-3">
+                                {reportSchedules.map(schedule => (
+                                    <div key={schedule.id} className="p-4 bg-[#0d1117] border border-[#30363d] rounded-lg">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h5 className="text-sm font-medium text-[#e6edf3]">
+                                                    {schedule.scope === 'ALL' ? 'System-wide' : 'Program-specific'} {schedule.cadence} Report
+                                                </h5>
+                                                <p className="text-xs text-[#8b949e] mt-1">
+                                                    Next run: {schedule.nextRunAt.toLocaleDateString()} at {schedule.nextRunAt.toLocaleTimeString()}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <span className={`text-xs px-2 py-1 rounded ${
+                                                    schedule.enabled
+                                                        ? 'bg-[#238636] bg-opacity-20 text-[#238636]'
+                                                        : 'bg-[#f85149] bg-opacity-20 text-[#f85149]'
+                                                }`}>
+                                                    {schedule.enabled ? 'Active' : 'Paused'}
+                                                </span>
+                                                <button className="text-[#8b949e] hover:text-[#e6edf3] transition-colors">
+                                                    <Icon name="more-horizontal" size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Report Preview */}
+                    <div className="p-4 bg-[#0d1117] border border-[#30363d] rounded-lg">
+                        <h4 className="text-md font-medium text-[#e6edf3] mb-4">Generate Report Now</h4>
+                        <p className="text-sm text-[#8b949e] mb-4">
+                            Create an instant report to see what your scheduled reports will look like.
+                        </p>
+                        <div className="flex gap-3">
+                            <button className="px-4 py-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors text-sm">
+                                Generate Weekly Summary
+                            </button>
+                            <button className="px-4 py-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors text-sm">
+                                Download CSV Export
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         // Header Component
         function Header({ searchQuery, setSearchQuery, hasNotifications, currentUser, onLogout, onFileRequest, showStatsDropdown, setShowStatsDropdown, showRequestsDropdown, setShowRequestsDropdown, fileRequests, resources, programs, recentActivity, setShowBulkUpload, onRefreshData, isLoading, dataError, lastUpdated }) {
             const [showProfile, setShowProfile] = useState(false);
@@ -2556,6 +3703,12 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                 <Icon name="file-plus" size={16} />
                                 <span>Request File</span>
                             </button>
+
+                            {/* Notifications Bell */}
+                            {NOTIFICATIONS_V1_ENABLED && <NotificationBell currentUser={currentUser} />}
+
+                            {/* Settings Button */}
+                            {NOTIFICATIONS_V1_ENABLED && <SettingsButton currentUser={currentUser} />}
 
                             {/* File Requests Button */}
                             <div className="relative dropdown-container">
@@ -4914,6 +6067,16 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 setResources(resources.map(r =>
                     r.id === resourceId ? { ...r, isFavorite: !r.isFavorite } : r
                 ));
+
+                // Capture resource change event for notifications
+                if (NOTIFICATIONS_V1_ENABLED && currentUser) {
+                    NotificationService.captureResourceChange(
+                        resourceId,
+                        'updated',
+                        currentUser.id,
+                        'Resource favorite status changed'
+                    );
+                }
             };
 
             const handleAddResource = (newResource) => {
@@ -4923,8 +6086,21 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 const updatedResources = [...resources, newResource];
                 setResources(updatedResources);
 
+                // Store resources globally for notification access
+                window.currentResources = updatedResources;
+
                 // Also save to localStorage for persistence in demo
                 localStorage.setItem('resources', JSON.stringify(updatedResources));
+
+                // Capture resource creation event for notifications
+                if (NOTIFICATIONS_V1_ENABLED && currentUser) {
+                    NotificationService.captureResourceChange(
+                        newResource.id,
+                        'created',
+                        currentUser.id,
+                        `New resource created: ${newResource.resourceName}`
+                    );
+                }
             };
 
             const handleFileRequest = async (newRequest) => {
@@ -5028,10 +6204,44 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                         hasTopics: newData.resources.some(r => r.topics && r.topics.length > 0)
                     });
 
+                    // Detect resource changes for notifications
+                    if (NOTIFICATIONS_V1_ENABLED && currentUser && resources.length > 0) {
+                        const oldResourceIds = new Set(resources.map(r => r.id));
+                        const newResourceIds = new Set(newData.resources.map(r => r.id));
+
+                        // Find new resources
+                        const addedResources = newData.resources.filter(r => !oldResourceIds.has(r.id));
+                        addedResources.forEach(resource => {
+                            NotificationService.captureResourceChange(
+                                resource.id,
+                                'created',
+                                currentUser.id,
+                                `New resource detected: ${resource.resourceName}`
+                            );
+                        });
+
+                        // Find updated resources (compare lastUpdated field)
+                        const updatedResources = newData.resources.filter(newR => {
+                            const oldR = resources.find(r => r.id === newR.id);
+                            return oldR && oldR.lastUpdated !== newR.lastUpdated;
+                        });
+                        updatedResources.forEach(resource => {
+                            NotificationService.captureResourceChange(
+                                resource.id,
+                                'updated',
+                                currentUser.id,
+                                `Resource updated: ${resource.resourceName}`
+                            );
+                        });
+                    }
+
                     setData(newData);
                     setPrograms(newData.programs || MOCK_DATABASE.programs);
                     setResources(newData.resources);
                     setLastUpdated(new Date());
+
+                    // Store resources globally for notification access
+                    window.currentResources = newData.resources;
 
                     console.log('✅ Data successfully loaded and set in state');
                 } catch (error) {
@@ -5053,6 +6263,9 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
             };
 
             useEffect(() => {
+                // Initialize global resources
+                window.currentResources = resources;
+
                 // Check for saved user session
                 const savedUser = localStorage.getItem('govex_user');
                 if (savedUser) {
@@ -5062,6 +6275,11 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 // Fetch data from Google Sheets on component mount
                 loadDataFromGoogleSheets();
             }, []);
+
+            // Update global resources when resources change
+            useEffect(() => {
+                window.currentResources = resources;
+            }, [resources]);
 
             // Show login page if no user is logged in
             if (!currentUser) {
