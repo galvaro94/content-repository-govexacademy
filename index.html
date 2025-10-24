@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GovEx Academy Resources</title>
+    <!-- Cache bust: 2025-01-24-fixed -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -6995,24 +6996,6 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                             currentUser={currentUser}
                             onClose={() => setShowNotificationSettings(false)}
                         />
-                    )}
-                    {/* Debug: Check showNotificationSettings state */}
-                    {console.log('Modal render check:', { showNotificationSettings, NOTIFICATIONS_V1_ENABLED, currentUser: !!currentUser })}
-
-                    {/* Temporary visual debug indicator */}
-                    {showNotificationSettings && (
-                        <div style={{
-                            position: 'fixed',
-                            top: '50px',
-                            right: '50px',
-                            background: 'red',
-                            color: 'white',
-                            padding: '10px',
-                            zIndex: 9999,
-                            border: '3px solid yellow'
-                        }}>
-                            DEBUG: showNotificationSettings is TRUE
-                        </div>
                     )}
 
                 </div>
