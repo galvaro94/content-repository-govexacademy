@@ -4274,9 +4274,6 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                             {/* Notifications Bell */}
                             {NOTIFICATIONS_V1_ENABLED && <NotificationBell currentUser={currentUser} />}
 
-                            {/* Settings Button */}
-                            {NOTIFICATIONS_V1_ENABLED && <SettingsButton currentUser={currentUser} />}
-
                             {/* File Requests Button */}
                             <div className="relative dropdown-container">
                                 <button
@@ -4446,6 +4443,18 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                                 >
                                                     <Icon name="users" className="mr-2" size={14} />
                                                     Bulk User Upload
+                                                </button>
+                                            )}
+                                            {NOTIFICATIONS_V1_ENABLED && (
+                                                <button
+                                                    onClick={() => {
+                                                        setShowProfile(false);
+                                                        setShowNotificationSettings(true);
+                                                    }}
+                                                    className="w-full text-left block px-2 py-1 text-[#e6edf3] hover:bg-[#30363d] rounded transition-colors text-sm"
+                                                >
+                                                    <Icon name="bell" className="mr-2" size={14} />
+                                                    Notifications & Reports
                                                 </button>
                                             )}
                                             <button className="w-full text-left block px-2 py-1 text-[#e6edf3] hover:bg-[#30363d] rounded transition-colors text-sm">
@@ -6518,6 +6527,7 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
             const [showStatsDropdown, setShowStatsDropdown] = useState(false);
             const [showRequestsDropdown, setShowRequestsDropdown] = useState(false);
             const [showBulkUpload, setShowBulkUpload] = useState(false);
+            const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
             // Calculate resource counts for each program-cohort combination
             const resourceCounts = useMemo(() => {
@@ -6974,6 +6984,13 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                         <BulkUploadCard
                             currentUser={currentUser}
                             onClose={() => setShowBulkUpload(false)}
+                        />
+                    )}
+
+                    {showNotificationSettings && NOTIFICATIONS_V1_ENABLED && (
+                        <SettingsModal
+                            currentUser={currentUser}
+                            onClose={() => setShowNotificationSettings(false)}
                         />
                     )}
 
