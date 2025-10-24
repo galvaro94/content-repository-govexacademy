@@ -4450,6 +4450,15 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                             {NOTIFICATIONS_V1_ENABLED && (
                                                 <button
                                                     onClick={() => {
+                                                        console.log('CLICK DEBUG: Button clicked');
+                                                        console.log('CLICK DEBUG: setShowNotificationSettings type:', typeof setShowNotificationSettings);
+                                                        console.log('CLICK DEBUG: setShowNotificationSettings value:', setShowNotificationSettings);
+
+                                                        if (typeof setShowNotificationSettings !== 'function') {
+                                                            console.error('ERROR: setShowNotificationSettings is not a function!');
+                                                            return;
+                                                        }
+
                                                         console.log('TEST 1 PASSED: Notification settings button clicked');
                                                         setShowProfile(false);
                                                         setShowNotificationSettings(true);
