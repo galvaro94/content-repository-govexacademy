@@ -3302,6 +3302,8 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
 
         // Settings Modal Component
         function SettingsModal({ currentUser, onClose }) {
+            console.log('SettingsModal: Component rendered', { currentUser, onClose: typeof onClose });
+
             const [activeTab, setActiveTab] = useState('notifications');
             const [isEnabling, setIsEnabling] = useState(false);
             const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -4448,8 +4450,10 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                             {NOTIFICATIONS_V1_ENABLED && (
                                                 <button
                                                     onClick={() => {
+                                                        console.log('Notification settings button clicked');
                                                         setShowProfile(false);
                                                         setShowNotificationSettings(true);
+                                                        console.log('State should be: showNotificationSettings = true');
                                                     }}
                                                     className="w-full text-left block px-2 py-1 text-[#e6edf3] hover:bg-[#30363d] rounded transition-colors text-sm"
                                                 >
@@ -6993,6 +6997,8 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                             onClose={() => setShowNotificationSettings(false)}
                         />
                     )}
+                    {/* Debug: Check showNotificationSettings state */}
+                    {console.log('Modal render check:', { showNotificationSettings, NOTIFICATIONS_V1_ENABLED, currentUser: !!currentUser })}
 
                 </div>
             );
