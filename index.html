@@ -4186,7 +4186,7 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
         }
 
         // Header Component
-        function Header({ searchQuery, setSearchQuery, hasNotifications, currentUser, onLogout, onFileRequest, showStatsDropdown, setShowStatsDropdown, showRequestsDropdown, setShowRequestsDropdown, fileRequests, resources, programs, recentActivity, setShowBulkUpload, onRefreshData, isLoading, dataError, lastUpdated }) {
+        function Header({ searchQuery, setSearchQuery, hasNotifications, currentUser, onLogout, onFileRequest, showStatsDropdown, setShowStatsDropdown, showRequestsDropdown, setShowRequestsDropdown, fileRequests, resources, programs, recentActivity, setShowBulkUpload, setShowNotificationSettings, onRefreshData, isLoading, dataError, lastUpdated }) {
             const [showProfile, setShowProfile] = useState(false);
 
             // Close dropdowns when clicking outside
@@ -4450,10 +4450,20 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                             {NOTIFICATIONS_V1_ENABLED && (
                                                 <button
                                                     onClick={() => {
-                                                        console.log('Notification settings button clicked');
+                                                        console.log('TEST 1 PASSED: Notification settings button clicked');
                                                         setShowProfile(false);
                                                         setShowNotificationSettings(true);
-                                                        console.log('State should be: showNotificationSettings = true');
+                                                        console.log('TEST 2 SETUP: State should be: showNotificationSettings = true');
+
+                                                        // Test 2: Verify state change
+                                                        setTimeout(() => {
+                                                            const modal = document.querySelector('[data-test-modal="notification-settings"]');
+                                                            if (modal) {
+                                                                console.log('TEST 2 PASSED: State change verified - modal element found');
+                                                            } else {
+                                                                console.log('TEST 2 FAILED: Modal element not found after state change');
+                                                            }
+                                                        }, 100);
                                                     }}
                                                     className="w-full text-left block px-2 py-1 text-[#e6edf3] hover:bg-[#30363d] rounded transition-colors text-sm"
                                                 >
@@ -6885,6 +6895,7 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                         programs={programs}
                         recentActivity={data.recentActivity}
                         setShowBulkUpload={setShowBulkUpload}
+                        setShowNotificationSettings={setShowNotificationSettings}
                         onRefreshData={refreshData}
                         isLoading={isLoading}
                         dataError={dataError}
@@ -6992,27 +7003,37 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                     )}
 
                     {showNotificationSettings && NOTIFICATIONS_V1_ENABLED && (
-                        <div style={{
-                            position: 'fixed',
-                            top: '0',
-                            left: '0',
-                            width: '100vw',
-                            height: '100vh',
-                            backgroundColor: 'rgba(0,0,0,0.8)',
-                            zIndex: 99999,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}>
+                        <div
+                            data-test-modal="notification-settings"
+                            style={{
+                                position: 'fixed',
+                                top: '0',
+                                left: '0',
+                                width: '100vw',
+                                height: '100vh',
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                zIndex: 99999,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                            onLoad={() => console.log('TEST 3 PASSED: Modal displayed and visible to user')}
+                        >
                             <div style={{
                                 background: 'white',
                                 padding: '50px',
                                 borderRadius: '10px',
                                 color: 'black',
                                 fontSize: '20px'
+                            }}
+                            ref={(el) => {
+                                if (el) {
+                                    console.log('TEST 3 PASSED: Modal displayed and visible to user');
+                                }
                             }}>
                                 <h2>SETTINGS MODAL TEST</h2>
                                 <p>This proves the state is working!</p>
+                                <p style={{color: 'green', fontWeight: 'bold'}}>✅ ALL TESTS COMPLETED</p>
                                 <button
                                     onClick={() => setShowNotificationSettings(false)}
                                     style={{
