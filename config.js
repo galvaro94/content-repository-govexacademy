@@ -20,9 +20,10 @@ const CONFIG = {
 
     // API Configuration
     claude: {
-        // GitHub Pages will inject the API key via build process
-        // For local development, you'll need to add it manually (see README)
-        apiKey: window.CLAUDE_API_KEY || process.env.CLAUDE_API_KEY || null,
+        // Dynamic API key getter that checks for injected key
+        get apiKey() {
+            return window.CLAUDE_API_KEY || process.env.CLAUDE_API_KEY || null;
+        },
         apiUrl: 'https://api.anthropic.com/v1/messages',
         models: {
             development: 'claude-3-haiku-20240307',  // Faster, cheaper for dev
@@ -54,21 +55,57 @@ if (CONFIG.environment === 'development') {
     CONFIG.features.debugMode = true;
 }
 
-// Validate configuration
-if (CONFIG.claude.apiKey && !CONFIG.claude.apiKey.startsWith('sk-ant-')) {
-    console.warn('⚠️ Invalid Claude API key format detected');
-    CONFIG.claude.apiKey = null;
+// Function to validate and log configuration
+function validateAndLogConfig() {
+    const apiKey = CONFIG.claude.apiKey;
+
+    // Validate API key format
+    if (apiKey && !apiKey.startsWith('sk-ant-')) {
+        console.warn('⚠️ Invalid Claude API key format detected');
+        return false;
+    }
+
+    // Debug information
+    if (CONFIG.features.debugMode || CONFIG.environment === 'production') {
+        console.log('🔧 App Configuration:', {
+            environment: CONFIG.environment,
+            hasApiKey: !!apiKey,
+            keyPreview: apiKey ? `${apiKey.substring(0, 12)}...` : 'None',
+            model: CONFIG.claude.models[CONFIG.environment],
+            features: CONFIG.features,
+            timestamp: new Date().toISOString()
+        });
+    }
+
+    return !!apiKey;
 }
 
 // Export configuration
 window.APP_CONFIG = CONFIG;
 
-// Debug information (development only)
-if (CONFIG.features.debugMode) {
-    console.log('🔧 App Configuration:', {
-        environment: CONFIG.environment,
-        hasApiKey: !!CONFIG.claude.apiKey,
-        model: CONFIG.claude.models[CONFIG.environment],
-        features: CONFIG.features
+// Initial validation
+validateAndLogConfig();
+
+// Re-validate after DOM loads (in case API key was injected later)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            const hasKey = validateAndLogConfig();
+            if (hasKey) {
+                console.log('✅ Claude API key loaded successfully');
+            } else {
+                console.warn('⚠️ Claude API key not found - using fallback mode');
+            }
+        }, 100);
     });
+} else {
+    // DOM already loaded
+    setTimeout(() => {
+        const hasKey = validateAndLogConfig();
+        if (hasKey) {
+            console.log('✅ Claude API key loaded successfully');
+        } else {
+            console.warn('⚠️ Claude API key not found - using fallback mode');
+        }
+    }, 100);
 }

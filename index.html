@@ -2097,8 +2097,19 @@
 
                     // Get configuration from APP_CONFIG
                     const config = window.APP_CONFIG;
-                    if (!config || !config.claude.apiKey) {
-                        throw new Error('Claude API key not configured');
+                    const apiKey = config?.claude?.apiKey;
+
+                    console.log('🔍 Claude API Debug:', {
+                        hasConfig: !!config,
+                        hasApiKey: !!apiKey,
+                        keyPreview: apiKey ? `${apiKey.substring(0, 12)}...` : 'None',
+                        environment: config?.environment,
+                        claudeEnabled: config?.features?.claudeAI,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    if (!config || !apiKey) {
+                        throw new Error(`Claude API key not configured. Config: ${!!config}, API Key: ${!!apiKey}`);
                     }
 
                     // Prepare context about the website data
@@ -2226,7 +2237,35 @@ Remember: You have access to real, current data about the resources, so provide 
 - File Types: ${fileTypes.join(', ')}
 - Programs: ${programs.join(', ')}
 - Recent Authors: ${authors.join(', ')}`;
+            },
+
+            // Test function for debugging Claude API integration
+            async testConnection() {
+                console.log('🧪 Testing Claude API connection...');
+
+                try {
+                    const result = await this.sendMessage('Hello! This is a test message. Please respond with "Claude API is working correctly."', {
+                        resources: [],
+                        programs: [],
+                        currentUser: { role: 'test', name: 'Test User' },
+                        totalStats: { total: 0 }
+                    });
+
+                    console.log('✅ Claude API test successful:', result);
+                    return result;
+                } catch (error) {
+                    console.error('❌ Claude API test failed:', error);
+                    return { success: false, error: error.message };
+                }
             }
+        };
+
+        // Global test function for easy debugging from browser console
+        window.testClaudeAPI = async function() {
+            console.log('🚀 Starting Claude API test from browser console...');
+            const result = await ClaudeAIService.testConnection();
+            console.log('🏁 Test completed:', result);
+            return result;
         };
 
         // Google Sheets API service functions
