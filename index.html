@@ -5198,6 +5198,7 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
         // Resource Card Component
         function ResourceCard({ resource, programs, onToggleFavorite }) {
             const [showDownloadDropdown, setShowDownloadDropdown] = useState(false);
+            const [showAllDetails, setShowAllDetails] = useState(false);
 
             const fileTypeIcons = {
                 ".xlsx": "table-2", ".xls": "table-2",
@@ -5207,12 +5208,41 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 ".html": "globe"
             };
 
+            // Enhanced color palettes
+            const programColors = [
+                'bg-purple-600', 'bg-teal-600', 'bg-orange-600',
+                'bg-pink-600', 'bg-indigo-600', 'bg-yellow-600',
+                'bg-cyan-600', 'bg-rose-600', 'bg-emerald-600',
+                'bg-violet-600', 'bg-amber-600', 'bg-lime-600'
+            ];
+
+            const topicColors = [
+                'bg-slate-600', 'bg-zinc-600', 'bg-stone-600',
+                'bg-neutral-600', 'bg-gray-600'
+            ];
+
             const fileTypeColors = {
-                ".xlsx": "bg-[#10b981]", ".xls": "bg-[#10b981]",
-                ".pdf": "bg-[#f85149]",
-                ".docx": "bg-[#3b82f6]", ".doc": "bg-[#3b82f6]",
-                ".pptx": "bg-[#f59e0b]",
-                ".html": "bg-[#8b5cf6]"
+                ".xlsx": "bg-green-600", ".xls": "bg-green-600",
+                ".pdf": "bg-red-600",
+                ".docx": "bg-blue-600", ".doc": "bg-blue-600",
+                ".pptx": "bg-orange-600",
+                ".html": "bg-purple-600"
+            };
+
+            const languageColors = {
+                'EN': 'bg-blue-700',   // English
+                'ES': 'bg-yellow-600', // Spanish
+                'PT': 'bg-green-700',  // Portuguese
+                'IT': 'bg-green-600'   // Italian
+            };
+
+            // Helper functions for colors
+            const getProgramColor = (programCode, index) => {
+                return programColors[index % programColors.length];
+            };
+
+            const getTopicColor = (topic, index) => {
+                return topicColors[index % topicColors.length];
             };
 
             // Get programs for this resource
@@ -5226,37 +5256,28 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 { code: 'IT', link: resource.italianLink, label: 'Italian' }
             ].filter(lang => lang.link);
 
+            // Format date helper
+            const formatDate = (dateStr) => {
+                if (!dateStr) return 'N/A';
+                try {
+                    const date = new Date(dateStr);
+                    return date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                } catch (e) {
+                    return dateStr;
+                }
+            };
+
             return (
-                <div className="bg-[#161b22] border border-[#30363d] rounded-lg p-4 hover:border-[#137fec] transition-all fade-in group">
-                    {/* Header with badges */}
-                    <div className="flex items-start justify-between mb-3">
-                        <div className="flex flex-wrap items-center gap-1">
-                            {/* Program badges */}
-                            {resourcePrograms.map(programCode => (
-                                <span
-                                    key={programCode}
-                                    className="px-2 py-1 text-xs font-medium rounded text-white bg-[#137fec]"
-                                >
-                                    {programCode}
-                                </span>
-                            ))}
-
-                            {/* Source badge */}
-                            <span className={`px-2 py-1 text-xs font-medium rounded text-white ${
-                                resource.govexOrExternal === 'GovEx' ? 'bg-[#137fec]' : 'bg-[#10b981]'
-                            }`}>
-                                {resource.govexOrExternal}
-                            </span>
-
-                            {/* File type badge */}
-                            <span className={`px-2 py-1 text-xs font-medium rounded text-white flex items-center space-x-1 ${
-                                fileTypeColors[resource.fileType] || 'bg-[#8b949e]'
-                            }`}>
-                                <Icon name={fileTypeIcons[resource.fileType] || 'file'} size={12} />
-                                <span>{resource.fileType}</span>
-                            </span>
-                        </div>
-
+                <div className="bg-[#161b22] border border-[#30363d] rounded-lg p-5 hover:border-[#137fec] transition-all fade-in group">
+                    {/* Header Section - Title and Favorite */}
+                    <div className="flex items-start justify-between mb-4">
+                        <h3 className="text-[#e6edf3] font-semibold text-lg group-hover:text-[#137fec] transition-colors leading-tight">
+                            {resource.resourceName || 'Untitled Resource'}
+                        </h3>
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -5267,54 +5288,132 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                             <Icon
                                 name="heart"
                                 className={resource.isFavorite ? "text-[#f85149] fill-current" : "text-[#8b949e] group-hover:text-[#e6edf3]"}
-                                size={16}
+                                size={18}
                             />
                         </button>
                     </div>
 
-                    {/* Title */}
-                    <h3 className="text-[#e6edf3] font-medium mb-2 group-hover:text-[#137fec] transition-colors">
-                        {resource.resourceName}
-                    </h3>
+                    {/* Primary Badges Section */}
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                        {/* Program badges with unique colors */}
+                        {resourcePrograms.map((programCode, index) => (
+                            <span
+                                key={programCode}
+                                className={`px-3 py-1 text-xs font-medium rounded-full text-white ${getProgramColor(programCode, index)}`}
+                            >
+                                {programCode}
+                            </span>
+                        ))}
 
-                    {/* Topic tags */}
-                    {resource.topics && resource.topics.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                            {resource.topics.slice(0, 3).map(topic => (
-                                <span
-                                    key={topic}
-                                    className="px-2 py-1 text-xs bg-[#30363d] text-[#8b949e] rounded"
-                                >
-                                    {topic}
-                                </span>
-                            ))}
-                            {resource.topics.length > 3 && (
-                                <span className="px-2 py-1 text-xs bg-[#30363d] text-[#8b949e] rounded">
-                                    +{resource.topics.length - 3} more
-                                </span>
-                            )}
-                        </div>
-                    )}
+                        {/* Source badge */}
+                        <span className={`px-3 py-1 text-xs font-medium rounded-full text-white ${
+                            resource.govexOrExternal === 'GovEx' ? 'bg-indigo-600' : 'bg-green-600'
+                        }`}>
+                            {resource.govexOrExternal || 'Unknown'}
+                        </span>
+
+                        {/* File type badge */}
+                        {resource.fileType && (
+                            <span className={`px-3 py-1 text-xs font-medium rounded-full text-white flex items-center space-x-1 ${
+                                fileTypeColors[resource.fileType] || 'bg-gray-600'
+                            }`}>
+                                <Icon name={fileTypeIcons[resource.fileType] || 'file'} size={12} />
+                                <span>{resource.fileType}</span>
+                            </span>
+                        )}
+
+                        {/* City Shared indicator */}
+                        {resource.cityShared && (
+                            <span className="px-3 py-1 text-xs font-medium rounded-full text-white bg-cyan-600">
+                                City Shared
+                            </span>
+                        )}
+
+                        {/* Fillable template indicator */}
+                        {resource.fillable && (
+                            <span className="px-3 py-1 text-xs font-medium rounded-full text-white bg-emerald-600">
+                                Fillable Template
+                            </span>
+                        )}
+                    </div>
 
                     {/* Description */}
-                    <p className="text-[#8b949e] text-sm mb-3 line-clamp-2">"{resource.description}"</p>
-
-                    {/* Authors */}
-                    {resource.authors && resource.authors.length > 0 && (
-                        <p className="text-[#8b949e] text-sm mb-2">
-                            By: <span className="text-[#e6edf3]">{resource.authors.join(", ")}</span>
+                    {resource.description && (
+                        <p className="text-[#8b949e] text-sm mb-4 leading-relaxed">
+                            "{resource.description}"
                         </p>
                     )}
 
-                    {/* Language availability and fillable indicator */}
-                    <div className="flex items-center justify-between mb-3">
+                    {/* Topic tags */}
+                    {resource.topics && resource.topics.length > 0 && (
+                        <div className="mb-4">
+                            <div className="text-xs text-[#8b949e] mb-2">Topics:</div>
+                            <div className="flex flex-wrap gap-2">
+                                {resource.topics.slice(0, 4).map((topic, index) => (
+                                    <span
+                                        key={topic}
+                                        className={`px-2 py-1 text-xs text-white rounded ${getTopicColor(topic, index)}`}
+                                    >
+                                        {topic}
+                                    </span>
+                                ))}
+                                {resource.topics.length > 4 && (
+                                    <span className="px-2 py-1 text-xs bg-gray-600 text-white rounded">
+                                        +{resource.topics.length - 4} more
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Metadata Section */}
+                    <div className="space-y-3 mb-4">
+                        {/* Submission Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            {resource.submittedAt && (
+                                <div className="flex items-center space-x-2">
+                                    <Icon name="calendar" size={14} className="text-[#8b949e]" />
+                                    <span className="text-[#8b949e]">Submitted:</span>
+                                    <span className="text-[#e6edf3]">{formatDate(resource.submittedAt)}</span>
+                                </div>
+                            )}
+                            {resource.lastUpdated && (
+                                <div className="flex items-center space-x-2">
+                                    <Icon name="clock" size={14} className="text-[#8b949e]" />
+                                    <span className="text-[#8b949e]">Updated:</span>
+                                    <span className="text-[#e6edf3]">{formatDate(resource.lastUpdated)}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Submitted By */}
+                        {resource.submittedBy && (
+                            <div className="flex items-center space-x-2 text-xs">
+                                <Icon name="user" size={14} className="text-[#8b949e]" />
+                                <span className="text-[#8b949e]">Submitted by:</span>
+                                <span className="text-[#e6edf3]">{resource.submittedBy}</span>
+                            </div>
+                        )}
+
+                        {/* Authors */}
+                        {resource.authors && resource.authors.length > 0 && (
+                            <div className="flex items-center space-x-2 text-xs">
+                                <Icon name="users" size={14} className="text-[#8b949e]" />
+                                <span className="text-[#8b949e]">Authors:</span>
+                                <span className="text-[#e6edf3]">{resource.authors.join(", ")}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Language Availability */}
+                    <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-2">
-                            {/* Language icons */}
+                            <span className="text-xs text-[#8b949e]">Available in:</span>
                             <div className="flex items-center space-x-1">
                                 {availableLanguages.map(lang => (
                                     <span
                                         key={lang.code}
-                                        className="px-1.5 py-0.5 text-xs bg-[#30363d] text-[#e6edf3] rounded"
+                                        className={`px-2 py-1 text-xs text-white rounded ${languageColors[lang.code] || 'bg-gray-600'}`}
                                         title={`Available in ${lang.label}`}
                                     >
                                         {lang.code}
@@ -5322,25 +5421,84 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                 ))}
                             </div>
                         </div>
-
-                        {/* Fillable indicator */}
-                        {resource.fillable && (
-                            <span className="px-2 py-1 text-xs bg-[#10b981] text-white rounded">
-                                Fillable Template
-                            </span>
-                        )}
                     </div>
 
-                    {/* Footer */}
+                    {/* Expandable Details Toggle */}
+                    {!showAllDetails && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowAllDetails(true);
+                            }}
+                            className="text-xs text-[#137fec] hover:text-[#1c8fed] mb-4 flex items-center space-x-1"
+                        >
+                            <span>Show more details</span>
+                            <Icon name="chevron-down" size={12} />
+                        </button>
+                    )}
+
+                    {/* Additional Details (Expandable) */}
+                    {showAllDetails && (
+                        <div className="border-t border-[#30363d] pt-4 mb-4 space-y-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-[#e6edf3]">Additional Details</span>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowAllDetails(false);
+                                    }}
+                                    className="text-xs text-[#8b949e] hover:text-[#e6edf3]"
+                                >
+                                    <Icon name="chevron-up" size={12} />
+                                </button>
+                            </div>
+
+                            {/* All Language Links */}
+                            <div className="space-y-2 text-xs">
+                                {resource.englishLink && (
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-[#8b949e] w-16">English:</span>
+                                        <a href={resource.englishLink} target="_blank" rel="noopener noreferrer"
+                                           className="text-[#137fec] hover:text-[#1c8fed] truncate flex-1">
+                                            {resource.englishLink}
+                                        </a>
+                                    </div>
+                                )}
+                                {resource.spanishLink && (
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-[#8b949e] w-16">Spanish:</span>
+                                        <a href={resource.spanishLink} target="_blank" rel="noopener noreferrer"
+                                           className="text-[#137fec] hover:text-[#1c8fed] truncate flex-1">
+                                            {resource.spanishLink}
+                                        </a>
+                                    </div>
+                                )}
+                                {resource.portugueseLink && (
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-[#8b949e] w-16">Portuguese:</span>
+                                        <a href={resource.portugueseLink} target="_blank" rel="noopener noreferrer"
+                                           className="text-[#137fec] hover:text-[#1c8fed] truncate flex-1">
+                                            {resource.portugueseLink}
+                                        </a>
+                                    </div>
+                                )}
+                                {resource.italianLink && (
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-[#8b949e] w-16">Italian:</span>
+                                        <a href={resource.italianLink} target="_blank" rel="noopener noreferrer"
+                                           className="text-[#137fec] hover:text-[#1c8fed] truncate flex-1">
+                                            {resource.italianLink}
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Footer - Download Actions */}
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 text-xs text-[#8b949e]">
-                            <span>Updated {new Date(resource.lastUpdated).toLocaleDateString()}</span>
-                            {resource.authors && resource.authors.length > 0 && (
-                                <>
-                                    <span>•</span>
-                                    <span className="font-medium">By {resource.authors.join(', ')}</span>
-                                </>
-                            )}
+                        <div className="text-xs text-[#8b949e]">
+                            <span>ID: {resource.id || 'N/A'}</span>
                         </div>
 
                         {/* Multi-language download dropdown */}
@@ -5350,7 +5508,7 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                     e.stopPropagation();
                                     setShowDownloadDropdown(!showDownloadDropdown);
                                 }}
-                                className="px-3 py-1.5 bg-[#137fec] text-white rounded hover:bg-[#1c8fed] transition-colors text-sm flex items-center space-x-1"
+                                className="px-4 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#1c8fed] transition-colors text-sm flex items-center space-x-2"
                             >
                                 <Icon name="download" size={14} />
                                 <span>Download</span>
@@ -5358,17 +5516,22 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                             </button>
 
                             {showDownloadDropdown && (
-                                <div className="absolute right-0 mt-1 w-40 bg-[#0d1117] border border-[#30363d] rounded shadow-lg z-10">
+                                <div className="absolute right-0 mt-1 w-48 bg-[#0d1117] border border-[#30363d] rounded-lg shadow-lg z-10">
                                     {availableLanguages.map(lang => (
                                         <a
                                             key={lang.code}
                                             href={lang.link}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="block w-full text-left px-3 py-2 text-sm text-[#e6edf3] hover:bg-[#30363d] transition-colors"
+                                            className="block w-full text-left px-4 py-3 text-sm text-[#e6edf3] hover:bg-[#30363d] transition-colors border-b border-[#30363d] last:border-b-0"
                                             onClick={(e) => e.stopPropagation()}
                                         >
-                                            Download ({lang.label})
+                                            <div className="flex items-center space-x-2">
+                                                <span className={`px-2 py-1 text-xs text-white rounded ${languageColors[lang.code] || 'bg-gray-600'}`}>
+                                                    {lang.code}
+                                                </span>
+                                                <span>Download {lang.label}</span>
+                                            </div>
                                         </a>
                                     ))}
                                 </div>
