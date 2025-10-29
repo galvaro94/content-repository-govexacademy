@@ -1566,20 +1566,20 @@
             const resources = currentData.resources || [];
 
             if (!query || query.length < searchConfig.minCharsToQuery) {
-                // Return top 8 most recently updated resources
+                // Return top 8 most recently updated resources - use submittedAt from new structure
                 return resources
-                    .sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated))
+                    .sort((a, b) => new Date(b.submittedAt || b.lastUpdated || 0) - new Date(a.submittedAt || a.lastUpdated || 0))
                     .slice(0, 8)
                     .map(transformResourceToSearchItem);
             }
 
-            // Advanced text matching with Google Sheets data
+            // Advanced text matching with Google Sheets data using new field names
             const queryLower = query.toLowerCase();
             const queryWords = queryLower.split(' ').filter(word => word.length > 1);
 
             return resources.filter(resource => {
-                // Search in resource name (highest priority)
-                if (resource.resourceName && resource.resourceName.toLowerCase().includes(queryLower)) {
+                // Search in title (primary field, highest priority)
+                if (resource.title && resource.title.toLowerCase().includes(queryLower)) {
                     return true;
                 }
 
@@ -1588,7 +1588,34 @@
                     return true;
                 }
 
-                // Search in topics
+                // Search in tags (new primary field for topics)
+                if (resource.tags && resource.tags.some(tag =>
+                    tag.toLowerCase().includes(queryLower) ||
+                    queryWords.some(word => tag.toLowerCase().includes(word))
+                )) {
+                    return true;
+                }
+
+                // Search in category (single category field)
+                if (resource.category && resource.category.toLowerCase().includes(queryLower)) {
+                    return true;
+                }
+
+                // Search in owner email
+                if (resource.ownerEmail && resource.ownerEmail.toLowerCase().includes(queryLower)) {
+                    return true;
+                }
+
+                // Search in file type
+                if (resource.fileType && resource.fileType.toLowerCase().includes(queryLower)) {
+                    return true;
+                }
+
+                // Fallback: Also search legacy fields for backward compatibility
+                if (resource.resourceName && resource.resourceName.toLowerCase().includes(queryLower)) {
+                    return true;
+                }
+
                 if (resource.topics && resource.topics.some(topic =>
                     topic.toLowerCase().includes(queryLower) ||
                     queryWords.some(word => topic.toLowerCase().includes(word))
@@ -1596,22 +1623,15 @@
                     return true;
                 }
 
-                // Search in authors
                 if (resource.authors && resource.authors.some(author =>
                     author.toLowerCase().includes(queryLower)
                 )) {
                     return true;
                 }
 
-                // Search in programs used
                 if (resource.programsUsed && resource.programsUsed.some(program =>
                     program.toLowerCase().includes(queryLower)
                 )) {
-                    return true;
-                }
-
-                // Search in file type
-                if (resource.fileType && resource.fileType.toLowerCase().includes(queryLower)) {
                     return true;
                 }
 
@@ -1623,18 +1643,27 @@
         function transformResourceToSearchItem(resource) {
             return {
                 id: resource.id.toString(),
-                title: resource.resourceName || 'Untitled Resource',
+                // Use new primary field 'title', with fallback to legacy 'resourceName'
+                title: resource.title || resource.resourceName || 'Untitled Resource',
                 type: getSearchItemType(resource.fileType),
-                url: resource.englishLink || resource.spanishLink || resource.portugueseLink || resource.italianLink || '#',
-                tags: resource.topics || [],
+                // Use new primary field 'linkUrl', with fallback to legacy language-specific links
+                url: resource.linkUrl || resource.englishLink || resource.spanishLink || resource.portugueseLink || resource.italianLink || '#',
+                // Use new primary field 'tags', with fallback to legacy 'topics'
+                tags: resource.tags || resource.topics || [],
                 popularity_7d: Math.random() * 100, // Could be enhanced with real analytics
-                last_updated: resource.lastUpdated + 'T00:00:00Z',
+                // Use new primary field 'submittedAt', with fallback to legacy 'lastUpdated'
+                last_updated: resource.submittedAt || resource.lastUpdated + 'T00:00:00Z',
                 last_used_by_you: null, // Could be enhanced with user tracking
                 org_priority: resource.govexOrExternal === 'GovEx' ? 0.9 : 0.7,
                 authors: resource.authors || [],
-                programs: resource.programsUsed || [],
+                // Use new primary field 'category', with fallback to legacy 'programsUsed'
+                programs: resource.category ? [resource.category] : (resource.programsUsed || []),
                 fillable: resource.fillable || false,
-                description: resource.description || ''
+                description: resource.description || '',
+                // Add new fields from Form Responses 2 structure
+                category: resource.category || '',
+                ownerEmail: resource.ownerEmail || '',
+                status: resource.status || 'new'
             };
         }
 
@@ -1677,28 +1706,43 @@
         }
 
         async function fetchRelatedByTags(query) {
-            // Get real resources and find related ones by topics/tags
+            // Get real resources and find related ones by tags/topics
             const currentData = await fetchDataFromGoogleSheets();
             const resources = currentData.resources || [];
 
             const queryLower = query.toLowerCase();
             const queryWords = queryLower.split(' ').filter(word => word.length > 2);
 
-            // Find resources with overlapping topics, authors, or programs
+            // Find resources with overlapping tags, categories, or owner
             return resources
                 .filter(resource => {
-                    const hasTopicOverlap = resource.topics && resource.topics.some(topic =>
-                        queryWords.some(word => topic.toLowerCase().includes(word))
+                    // Use new primary field 'tags', with fallback to legacy 'topics'
+                    const tags = resource.tags || resource.topics || [];
+                    const hasTagOverlap = tags.some(tag =>
+                        queryWords.some(word => tag.toLowerCase().includes(word))
                     );
+
+                    // Check category overlap (new field)
+                    const hasCategoryOverlap = resource.category &&
+                        queryWords.some(word => resource.category.toLowerCase().includes(word));
+
+                    // Check owner email overlap (new field)
+                    const hasOwnerOverlap = resource.ownerEmail &&
+                        queryWords.some(word => resource.ownerEmail.toLowerCase().includes(word));
+
+                    // Legacy support: check authors and programsUsed
                     const hasAuthorOverlap = resource.authors && resource.authors.some(author =>
                         queryWords.some(word => author.toLowerCase().includes(word))
                     );
                     const hasProgramOverlap = resource.programsUsed && resource.programsUsed.some(program =>
                         queryWords.some(word => program.toLowerCase().includes(word))
                     );
-                    const notExactMatch = !(resource.resourceName && resource.resourceName.toLowerCase().includes(queryLower));
 
-                    return (hasTopicOverlap || hasAuthorOverlap || hasProgramOverlap) && notExactMatch;
+                    // Exclude exact matches - use new primary field 'title', with fallback to legacy 'resourceName'
+                    const title = resource.title || resource.resourceName || '';
+                    const notExactMatch = !title.toLowerCase().includes(queryLower);
+
+                    return (hasTagOverlap || hasCategoryOverlap || hasOwnerOverlap || hasAuthorOverlap || hasProgramOverlap) && notExactMatch;
                 })
                 .map(transformResourceToSearchItem)
                 .slice(0, searchConfig.maxPerGroup);
@@ -1709,7 +1753,10 @@
             if (!query) return 0;
 
             const queryLower = query.toLowerCase();
-            const titleLower = item.title.toLowerCase();
+
+            // Use new primary field 'title', with fallback to legacy 'resourceName'
+            const title = item.title || item.resourceName || '';
+            const titleLower = title.toLowerCase();
 
             // Exact title match gets highest score
             if (titleLower === queryLower) return 1.0;
@@ -1720,13 +1767,28 @@
             // Title contains query gets medium score
             if (titleLower.includes(queryLower)) return 0.7;
 
+            // Use new primary field 'tags', with fallback to legacy 'topics'
+            const tags = item.tags || item.topics || [];
+
             // Tag exact match gets good score
-            const tagMatch = item.tags.some(tag => tag.toLowerCase() === queryLower);
+            const tagMatch = tags.some(tag => tag.toLowerCase() === queryLower);
             if (tagMatch) return 0.8;
 
             // Tag contains query gets lower score
-            const tagContains = item.tags.some(tag => tag.toLowerCase().includes(queryLower));
+            const tagContains = tags.some(tag => tag.toLowerCase().includes(queryLower));
             if (tagContains) return 0.5;
+
+            // Description match gets medium-low score
+            const description = item.description || '';
+            if (description.toLowerCase().includes(queryLower)) return 0.4;
+
+            // Category match gets medium-low score
+            const category = item.category || '';
+            if (category.toLowerCase().includes(queryLower)) return 0.4;
+
+            // Owner email match gets low score
+            const ownerEmail = item.ownerEmail || '';
+            if (ownerEmail.toLowerCase().includes(queryLower)) return 0.3;
 
             return 0;
         }
@@ -1800,9 +1862,9 @@
                     if (aLastUsed.getTime() !== bLastUsed.getTime()) {
                         return bLastUsed - aLastUsed;
                     }
-                    // Then by last_updated
-                    const aUpdated = new Date(a.last_updated || 0);
-                    const bUpdated = new Date(b.last_updated || 0);
+                    // Then by submittedAt (new field), with fallback to last_updated
+                    const aUpdated = new Date(a.submittedAt || a.last_updated || 0);
+                    const bUpdated = new Date(b.submittedAt || b.last_updated || 0);
                     return bUpdated - aUpdated;
                 }
                 return b.score - a.score;
