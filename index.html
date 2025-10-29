@@ -1810,11 +1810,183 @@
         }
 
         // Google Sheets API Configuration
+        // REFACTORED: Now exclusively uses "Form Responses 2" instead of "Sheet1"
         const GOOGLE_SHEETS_CONFIG = {
             API_KEY: 'AIzaSyBUa8W2lZXxRNfqJ3Ov0MWUPeTd0TjkRhg',
             SHEET_ID: '1GSqiViIPp4GPAe4ugZ2ImXShsU1NP37CjT_I3Ck-AR4',
-            RANGE: 'Sheet1!A2:N', // Gets columns A through N starting from row 2 (skipping headers)
+            SHEET_TITLE: 'Form Responses 2', // NEW: Use sheet title instead of hardcoded range
         };
+
+        // Resource Schema Interface (TypeScript-style definition for clarity)
+        // interface Resource {
+        //   id: string;               // stable id, e.g., hash of key fields
+        //   title?: string;
+        //   description?: string;
+        //   tags?: string[];
+        //   category?: string;
+        //   linkUrl?: string;
+        //   fileType?: "pdf" | "doc" | "sheet" | "slide" | "other";
+        //   ownerEmail?: string;
+        //   submittedAt?: string;     // ISO date
+        //   status?: "new" | "approved" | "rejected" | "archived";
+        //   raw: Record<string, string | null>; // keep original columns for traceability
+        // }
+
+        // Utility Functions for Data Processing
+        const DataUtils = {
+            // Normalize header names for consistent mapping
+            normalizeHeader: (header) => {
+                if (!header || typeof header !== 'string') return '';
+                return header.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^\w_]/g, '');
+            },
+
+            // Check if a string is a valid URL
+            isUrl: (str) => {
+                if (!str || typeof str !== 'string') return false;
+                return /^https?:\/\//i.test(str.trim());
+            },
+
+            // Infer file type from URL extension
+            inferFileType: (url) => {
+                if (!url || !DataUtils.isUrl(url)) return "other";
+                try {
+                    const ext = new URL(url).pathname.split(".").pop()?.toLowerCase();
+                    if (["pdf"].includes(ext)) return "pdf";
+                    if (["doc", "docx"].includes(ext)) return "doc";
+                    if (["xls", "xlsx", "gsheet"].includes(ext) || url.includes('spreadsheets')) return "sheet";
+                    if (["ppt", "pptx", "gslide"].includes(ext) || url.includes('presentation')) return "slide";
+                    return "other";
+                } catch (e) {
+                    return "other";
+                }
+            },
+
+            // Generate stable ID from multiple parts
+            makeId: (...parts) => {
+                const str = parts.filter(p => p && typeof p === 'string' && p.trim()).join('|');
+                // Simple hash function since we can't import crypto in browser
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // Convert to 32-bit integer
+                }
+                return Math.abs(hash).toString(16).slice(0, 12);
+            },
+
+            // Parse comma/semicolon-separated lists into arrays
+            parseArrayField: (field) => {
+                if (!field || typeof field !== 'string') return [];
+                return field.split(/[,;|]/).map(item => item.trim()).filter(item => item);
+            },
+
+            // Parse date strings to ISO format
+            parseDate: (dateStr) => {
+                if (!dateStr || typeof dateStr !== 'string') return null;
+                try {
+                    const date = new Date(dateStr);
+                    return isNaN(date.getTime()) ? null : date.toISOString();
+                } catch (e) {
+                    return null;
+                }
+            }
+        };
+
+        // Transform raw sheet rows to Resource objects
+        function rowsToResources(headers, rows) {
+            console.log('🔄 Processing', rows.length, 'rows with headers:', headers);
+
+            // Normalize headers for consistent mapping
+            const normalizedHeaders = headers.map(h => ({
+                original: h,
+                normalized: DataUtils.normalizeHeader(h)
+            }));
+
+            console.log('📋 Normalized headers:', normalizedHeaders);
+
+            const resources = rows.map((row, index) => {
+                // Create raw object with original headers
+                const raw = {};
+                headers.forEach((header, i) => {
+                    raw[header] = row[i] || null;
+                });
+
+                // Map to normalized fields
+                const normalized = {};
+                normalizedHeaders.forEach(({ original, normalized: norm }, i) => {
+                    normalized[norm] = row[i] || null;
+                });
+
+                // Extract key fields using multiple mapping strategies
+                const timestamp = normalized.timestamp || '';
+                const resourceName = normalized.resource_name || normalized.name || normalized.title || '';
+                const description = normalized.description || '';
+                const englishLink = normalized.english_link || normalized.link || normalized.url || '';
+                const submittedBy = normalized.submitted_by || normalized.owner || normalized.author || '';
+                const topics = normalized.topics || normalized.tags || '';
+                const programs = normalized.programs || normalized.programs_ex_cda4_bh9 || '';
+                const fileType = normalized.file_type || '';
+                const authors = normalized.authors || '';
+                const lastUpdated = normalized.last_updated || '';
+
+                // Find the primary URL (prefer English link, fallback to any URL-like field)
+                let primaryUrl = englishLink;
+                if (!DataUtils.isUrl(primaryUrl)) {
+                    // Check other language links
+                    const spanishLink = normalized.spanish_link || '';
+                    const portugueseLink = normalized.portuguese_link || '';
+                    const italianLink = normalized.italian_link || '';
+
+                    primaryUrl = [spanishLink, portugueseLink, italianLink].find(link => DataUtils.isUrl(link)) || '';
+                }
+
+                // Generate stable ID
+                const id = DataUtils.makeId(timestamp, submittedBy, resourceName);
+
+                // Build Resource object
+                const resource = {
+                    id,
+                    title: resourceName.trim() || null,
+                    description: description.trim() || null,
+                    tags: DataUtils.parseArrayField(topics),
+                    category: DataUtils.parseArrayField(programs)[0] || null, // Use first program as category
+                    linkUrl: DataUtils.isUrl(primaryUrl) ? primaryUrl.trim() : null,
+                    fileType: DataUtils.inferFileType(primaryUrl),
+                    ownerEmail: submittedBy.includes('@') ? submittedBy.trim() : null,
+                    submittedAt: DataUtils.parseDate(timestamp),
+                    status: "new", // Default status
+                    raw, // Keep original data for traceability
+
+                    // Legacy fields for compatibility
+                    resourceName: resourceName.trim(),
+                    englishLink: DataUtils.isUrl(englishLink) ? englishLink.trim() : null,
+                    spanishLink: DataUtils.isUrl(normalized.spanish_link) ? normalized.spanish_link.trim() : null,
+                    portugueseLink: DataUtils.isUrl(normalized.portuguese_link) ? normalized.portuguese_link.trim() : null,
+                    italianLink: DataUtils.isUrl(normalized.italian_link) ? normalized.italian_link.trim() : null,
+                    govexOrExternal: normalized.govex_or_external_resource || normalized.govex_or_external || '',
+                    cityShared: (normalized.city_shared || '').toLowerCase().includes('yes'),
+                    topics: DataUtils.parseArrayField(topics),
+                    programsUsed: DataUtils.parseArrayField(programs),
+                    authors: DataUtils.parseArrayField(authors),
+                    lastUpdated: lastUpdated.trim(),
+                    isFavorite: false
+                };
+
+                return resource;
+            }).filter(resource => {
+                // Validate required fields
+                const hasTitle = resource.title && resource.title.trim().length > 0;
+                const hasUrl = resource.linkUrl && resource.linkUrl.trim().length > 0;
+                return hasTitle || hasUrl; // Must have either title or URL
+            });
+
+            console.log('✅ Processed', resources.length, 'valid resources');
+            if (resources.length > 0) {
+                console.log('📝 Sample resource:', resources[0]);
+            }
+
+            return resources;
+        }
 
         // File Requests Google Sheets Configuration
         const FILE_REQUESTS_SHEETS_CONFIG = {
@@ -1826,39 +1998,65 @@
         // Google Sheets API service functions
         const GoogleSheetsService = {
             async fetchSheetData() {
-                const { API_KEY, SHEET_ID, RANGE } = GOOGLE_SHEETS_CONFIG;
+                const { API_KEY, SHEET_ID, SHEET_TITLE } = GOOGLE_SHEETS_CONFIG;
 
                 if (!API_KEY || API_KEY === 'YOUR_API_KEY' || !SHEET_ID || SHEET_ID === 'YOUR_SHEET_ID') {
                     console.warn('Google Sheets API not configured, using mock data');
                     return MOCK_DATABASE;
                 }
 
-                console.log('🔄 Fetching data from Google Sheets...', { SHEET_ID, RANGE });
+                console.log('🔄 Fetching data from Google Sheets...', { SHEET_ID, SHEET_TITLE });
 
                 try {
-                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
-                    const response = await fetch(url);
+                    // STEP 1: Fetch headers from row 1
+                    const headersUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_TITLE)}!1:1?key=${API_KEY}`;
+                    console.log('📋 Fetching headers from:', headersUrl);
+                    const headersResponse = await fetch(headersUrl);
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!headersResponse.ok) {
+                        throw new Error(`Headers fetch failed! status: ${headersResponse.status}`);
                     }
 
-                    const data = await response.json();
-                    const values = data.values || [];
+                    const headersData = await headersResponse.json();
+                    const headers = headersData.values?.[0] || [];
+
+                    if (headers.length === 0) {
+                        throw new Error('No headers found in Form Responses 2 sheet');
+                    }
+
+                    console.log('📋 Detected headers:', headers);
+
+                    // STEP 2: Fetch all data rows (starting from row 2)
+                    const dataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_TITLE)}!2:1000?key=${API_KEY}`;
+                    console.log('📊 Fetching data from:', dataUrl);
+
+                    const dataResponse = await fetch(dataUrl);
+                    if (!dataResponse.ok) {
+                        throw new Error(`Data fetch failed! status: ${dataResponse.status}`);
+                    }
+
+                    const data = await dataResponse.json();
+                    const rows = data.values || [];
 
                     console.log('📊 Google Sheets response:', {
-                        totalRows: values.length,
-                        firstRow: values[0],
-                        sheetData: data
+                        headers: headers.length,
+                        totalRows: rows.length,
+                        sampleRow: rows[0]
                     });
 
                     // If no data is returned from Google Sheets, fall back to mock data
-                    if (values.length === 0) {
-                        console.warn('⚠️ No data returned from Google Sheets, using mock data');
+                    if (rows.length === 0) {
+                        console.warn('⚠️ No data returned from Form Responses 2, using mock data');
                         return MOCK_DATABASE;
                     }
 
-                    const transformedData = this.transformSheetData(values);
+                    // STEP 3: Transform using the new rowsToResources function
+                    const resources = rowsToResources(headers, rows);
+
+                    const transformedData = {
+                        programs: MOCK_DATABASE.programs, // Keep existing programs structure
+                        resources: resources
+                    };
                     console.log('✅ Transformed data:', {
                         resourceCount: transformedData.resources.length,
                         sampleResource: transformedData.resources[0]
@@ -1866,7 +2064,7 @@
 
                     return transformedData;
                 } catch (error) {
-                    console.error('Error fetching from Google Sheets:', error);
+                    console.error('❌ Error fetching from Form Responses 2:', error);
                     throw error;
                 }
             },
