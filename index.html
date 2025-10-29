@@ -7356,15 +7356,17 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                 </div>
                                 <div className="flex items-center gap-3">
                                     {/* Request New Resource Button */}
-                                    <button
-                                        onClick={() => setShowEnhancedRequestModal(true)}
-                                        className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#137fec] to-[#1c8fed] hover:from-[#1c8fed] hover:to-[#2b9fff] text-white rounded-xl transition-all duration-200 font-medium text-sm shadow-lg ring-1 ring-white/10 hover:shadow-xl hover:scale-105"
-                                        title="Request a new resource"
-                                        aria-label="Request a new resource"
+                                    <a
+                                        href="https://docs.google.com/forms/d/e/1FAIpQLSfmiZetzji-3bwzzpPIN5YasnTWYQCJVkfOZcb-BDZqKdk6Xw/viewform?usp=header"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#137fec] to-[#1c8fed] hover:from-[#1c8fed] hover:to-[#2b9fff] text-white rounded-xl transition-all duration-200 font-medium text-sm shadow-lg ring-1 ring-white/10 hover:shadow-xl hover:scale-105 no-underline"
+                                        title="Request a new resource (opens form in a new tab)"
+                                        aria-label="Request a new resource (opens form in a new tab)"
                                     >
                                         <Icon name="plus" size={16} />
                                         <span>Request New Resource</span>
-                                    </button>
+                                    </a>
 
                                     {/* Manage Resources Button - Admin Only */}
                                     {currentUser?.role === 'Administrator' && (
