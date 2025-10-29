@@ -2066,6 +2066,169 @@
             RANGE: 'FileRequests!A2:H', // Columns: Timestamp, Name, Email, Description, Program, Additional Context, Status, Priority
         };
 
+        // Claude AI API Service
+        const ClaudeAIService = {
+            rateLimitTracker: {
+                requests: 0,
+                lastReset: Date.now(),
+                maxRequests: 20 // per minute
+            },
+
+            checkRateLimit() {
+                const now = Date.now();
+                const oneMinute = 60 * 1000;
+
+                if (now - this.rateLimitTracker.lastReset > oneMinute) {
+                    this.rateLimitTracker.requests = 0;
+                    this.rateLimitTracker.lastReset = now;
+                }
+
+                if (this.rateLimitTracker.requests >= this.rateLimitTracker.maxRequests) {
+                    throw new Error('Rate limit exceeded. Please wait a moment before asking another question.');
+                }
+
+                this.rateLimitTracker.requests++;
+            },
+
+            async sendMessage(userMessage, context = {}) {
+                try {
+                    // Check rate limit first
+                    this.checkRateLimit();
+
+                    // Get configuration from APP_CONFIG
+                    const config = window.APP_CONFIG;
+                    if (!config || !config.claude.apiKey) {
+                        throw new Error('Claude API key not configured');
+                    }
+
+                    // Prepare context about the website data
+                    const systemPrompt = this.buildSystemPrompt(context);
+
+                    const requestBody = {
+                        model: config.claude.models[config.environment],
+                        max_tokens: config.claude.maxTokens[config.environment],
+                        temperature: config.claude.temperature,
+                        system: systemPrompt,
+                        messages: [
+                            {
+                                role: "user",
+                                content: userMessage
+                            }
+                        ]
+                    };
+
+                    if (config.features.debugMode) {
+                        console.log('🤖 Sending to Claude:', {
+                            model: requestBody.model,
+                            messageLength: userMessage.length,
+                            systemPromptLength: systemPrompt.length
+                        });
+                    }
+
+                    const response = await fetch(config.claude.apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': config.claude.apiKey,
+                            'anthropic-version': '2023-06-01'
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Claude API error: ${response.status} ${response.statusText} - ${errorText}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (config.features.debugMode) {
+                        console.log('✅ Claude response received:', {
+                            contentLength: data.content[0].text.length,
+                            usage: data.usage
+                        });
+                    }
+
+                    return {
+                        message: data.content[0].text,
+                        success: true,
+                        usage: data.usage
+                    };
+                } catch (error) {
+                    console.error('Claude AI Error:', error);
+                    return {
+                        message: "I'm having trouble connecting to my AI services right now. Let me try to help you with my basic knowledge instead.",
+                        success: false,
+                        fallback: true,
+                        error: error.message
+                    };
+                }
+            },
+
+            buildSystemPrompt(context) {
+                const { resources = [], programs = [], currentUser = {}, totalStats = {} } = context;
+
+                return `You are the GovEx Academy AI Assistant, helping users navigate and find resources in a government excellence training platform.
+
+CURRENT WEBSITE DATA:
+- Total Resources: ${resources.length}
+- Available Programs: ${programs.map(p => p.name).join(', ')}
+- User Role: ${currentUser.role || 'Unknown'}
+- User Name: ${currentUser.name || 'Unknown'}
+
+RESOURCE CATEGORIES AVAILABLE:
+${this.getResourceSummary(resources)}
+
+WEBSITE STRUCTURE:
+- Main dashboard with resource cards and advanced search
+- Left sidebar with filters (programs, topics, file types, authors)
+- Search functionality in the header with AI-powered suggestions
+- Right sidebar with statistics and recent activity
+- Admin users can manage resources and view requests, regular users can request new ones
+
+CAPABILITIES:
+- Answer questions about available resources
+- Help users find specific content by searching through actual data
+- Provide statistics about the platform
+- Guide users through the interface
+- Suggest relevant resources based on queries
+- Help with navigation and feature usage
+
+RESPONSE GUIDELINES:
+- Be concise and helpful (aim for 2-3 sentences unless more detail is needed)
+- Use bullet points and formatting for clarity when listing items
+- Suggest specific actions when relevant (e.g., "I can filter the results for you")
+- Reference actual data from the platform when possible
+- Be conversational but professional
+- If asked about resources, provide specific examples from the actual data
+- When suggesting searches or filters, be specific about what's available
+
+SEARCH AND FILTER CAPABILITIES:
+You can help users by suggesting they search for specific terms or apply filters. Available filters include:
+- Programs: ${programs.map(p => p.shortName).join(', ')}
+- File types: PDF, Excel, Word, PowerPoint, Web pages
+- Topics/Tags: Based on actual resource tags
+- Authors: Based on actual resource creators
+
+Remember: You have access to real, current data about the resources, so provide specific and accurate information.`;
+            },
+
+            getResourceSummary(resources) {
+                if (!resources.length) return "No resources currently available.";
+
+                // Analyze actual resource data
+                const topics = [...new Set(resources.flatMap(r => r.tags || r.topics || []))].slice(0, 8);
+                const fileTypes = [...new Set(resources.map(r => r.fileType).filter(Boolean))];
+                const programs = [...new Set(resources.flatMap(r => r.programsUsed || []))].slice(0, 5);
+                const authors = [...new Set(resources.flatMap(r => r.authors || []))].slice(0, 5);
+
+                return `- Topics: ${topics.join(', ')}
+- File Types: ${fileTypes.join(', ')}
+- Programs: ${programs.join(', ')}
+- Recent Authors: ${authors.join(', ')}`;
+            }
+        };
+
         // Google Sheets API service functions
         const GoogleSheetsService = {
             async fetchSheetData() {
@@ -6605,6 +6768,17 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                         : 'bg-[#0d1117] text-[#e6edf3] border border-[#30363d]'
                                 }`}>
                                     <div className="whitespace-pre-line">{message.message}</div>
+                                    {message.type === 'bot' && message.source && (
+                                        <div className="text-xs mt-1 opacity-70">
+                                            <span className={`px-1 py-0.5 rounded text-xs ${
+                                                message.source === 'claude'
+                                                    ? 'bg-green-600 text-green-100'
+                                                    : 'bg-orange-600 text-orange-100'
+                                            }`}>
+                                                {message.source === 'claude' ? '🤖 Claude' : '📖 Local'}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -6678,15 +6852,55 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 scrollToBottom();
             }, [messages]);
 
-            // Predefined responses and AI logic
-            const getAIResponse = (userMessage) => {
+            // Enhanced AI response function with Claude API integration
+            const getAIResponse = async (userMessage) => {
+                // Prepare context for Claude
+                const context = {
+                    resources,
+                    programs,
+                    currentUser,
+                    selectedFilters,
+                    totalStats: {
+                        total: resources.length,
+                        govex: resources.filter(r => r.govexOrExternal === 'GovEx').length,
+                        external: resources.filter(r => r.govexOrExternal === 'External').length,
+                        fillable: resources.filter(r => r.fillable).length
+                    }
+                };
+
+                // Check if Claude API is available
+                const config = window.APP_CONFIG;
+                if (config && config.claude.apiKey && config.features.claudeAI) {
+                    try {
+                        const claudeResponse = await ClaudeAIService.sendMessage(userMessage, context);
+
+                        if (claudeResponse.success) {
+                            return {
+                                message: claudeResponse.message,
+                                actions: [], // Could be enhanced to parse actions from Claude response
+                                source: 'claude',
+                                usage: claudeResponse.usage
+                            };
+                        }
+                    } catch (error) {
+                        console.warn('Claude API failed, falling back to rule-based responses:', error);
+                    }
+                }
+
+                // Fallback to existing rule-based system
+                return getFallbackResponse(userMessage);
+            };
+
+            // Keep existing rule-based logic as fallback
+            const getFallbackResponse = (userMessage) => {
                 const message = userMessage.toLowerCase();
 
                 // Navigation help
                 if (message.includes('navigate') || message.includes('how to use') || message.includes('help')) {
                     return {
                         message: "I can help you navigate the dashboard! Here are the main areas:\n\n📊 **Left Sidebar**: Filter resources by programs, topics, authors, file types, and more\n📋 **Main Area**: Browse resource cards with download links\n📈 **Right Sidebar**: View quick stats and recent activity\n\nWhat would you like to explore?",
-                        actions: []
+                        actions: [],
+                        source: 'fallback'
                     };
                 }
 
@@ -6747,7 +6961,8 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
 
                     return {
                         message: `📊 **Dashboard Statistics:**\n\n• **Total Resources**: ${totalResources}\n• **GovEx Resources**: ${govexCount}\n• **External Resources**: ${externalCount}\n• **Fillable Templates**: ${fillableCount}\n\nYou can see live stats in the right sidebar!`,
-                        actions: []
+                        actions: [],
+                        source: 'fallback'
                     };
                 }
 
@@ -6838,7 +7053,8 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 // Default response with suggestions
                 return {
                     message: "I'm here to help! Here are some things you can ask me:\n\n🔍 **\"Find resources about [topic]\"**\n📊 **\"How many resources do we have?\"**\n➕ **\"How do I add a new resource?\"**\n🔽 **\"How do I filter resources?\"**\n👥 **\"Who are the authors?\"**\n🧭 **\"Help me navigate the dashboard\"**\n\nWhat would you like to know?",
-                    actions: []
+                    actions: [],
+                    source: 'fallback'
                 };
             };
 
@@ -6893,28 +7109,53 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 };
 
                 setMessages(prev => [...prev, userMessage]);
+                const originalMessage = inputMessage; // Store original before clearing
                 setInputMessage('');
                 setIsTyping(true);
 
-                // Simulate AI thinking time
-                setTimeout(() => {
-                    const aiResponse = getAIResponse(inputMessage);
+                try {
+                    // Get AI response (now async with Claude integration)
+                    const aiResponse = await getAIResponse(originalMessage);
 
                     const botMessage = {
                         id: Date.now() + 1,
                         type: 'bot',
                         message: aiResponse.message,
-                        timestamp: new Date()
+                        timestamp: new Date(),
+                        source: aiResponse.source || 'unknown',
+                        usage: aiResponse.usage
                     };
 
                     setMessages(prev => [...prev, botMessage]);
-                    setIsTyping(false);
 
                     // Execute any actions
                     if (aiResponse.actions && aiResponse.actions.length > 0) {
                         executeActions(aiResponse.actions);
                     }
-                }, 1000 + Math.random() * 1000);
+
+                    // Debug logging
+                    if (window.APP_CONFIG?.features?.debugMode) {
+                        console.log('🤖 AI Response:', {
+                            source: aiResponse.source,
+                            messageLength: aiResponse.message.length,
+                            usage: aiResponse.usage
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error getting AI response:', error);
+
+                    const errorMessage = {
+                        id: Date.now() + 1,
+                        type: 'bot',
+                        message: "I'm sorry, I encountered an error while processing your request. Please try again or rephrase your question.",
+                        timestamp: new Date(),
+                        source: 'error'
+                    };
+
+                    setMessages(prev => [...prev, errorMessage]);
+                } finally {
+                    setIsTyping(false);
+                }
             };
 
             const handleKeyPress = (e) => {
@@ -6967,6 +7208,15 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                             message.type === 'user' ? 'text-blue-100' : 'text-[#8b949e]'
                                         }`}>
                                             {message.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            {message.type === 'bot' && message.source && (
+                                                <span className={`ml-2 px-1 py-0.5 rounded text-xs ${
+                                                    message.source === 'claude'
+                                                        ? 'bg-green-600 text-green-100'
+                                                        : 'bg-orange-600 text-orange-100'
+                                                }`}>
+                                                    {message.source === 'claude' ? '🤖 Claude' : '📖 Local'}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
