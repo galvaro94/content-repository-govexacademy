@@ -12,16 +12,18 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background-color: #0d1117;
+            color: #e6edf3;
             min-height: 100vh;
         }
 
         .header {
-            background-color: #2d2d2d;
-            border-bottom: 1px solid #404040;
-            padding: 1rem 1.5rem;
+            background: linear-gradient(to right, #0d1117, #161b22, #0d1117);
+            border-bottom: 1px solid #30363d;
+            padding: 1.25rem 1.5rem;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .header-content {
@@ -35,15 +37,17 @@
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 1rem;
-            background-color: #404040;
-            color: white;
+            background-color: #30363d;
+            color: #e6edf3;
             text-decoration: none;
             border-radius: 0.5rem;
             transition: background-color 0.2s;
+            border: 1px solid #30363d;
         }
 
         .back-button:hover {
-            background-color: #505050;
+            background-color: #404854;
+            border-color: #404854;
         }
 
         .main-content {
@@ -61,7 +65,7 @@
         }
 
         .section-subtitle {
-            color: #aaaaaa;
+            color: #8b949e;
         }
 
         .loading {
@@ -72,8 +76,8 @@
         .spinner {
             width: 3rem;
             height: 3rem;
-            border: 3px solid #404040;
-            border-top: 3px solid #3b82f6;
+            border: 3px solid #30363d;
+            border-top: 3px solid #137fec;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 1rem;
@@ -85,8 +89,8 @@
         }
 
         .table-container {
-            background-color: #2d2d2d;
-            border: 1px solid #404040;
+            background-color: #161b22;
+            border: 1px solid #30363d;
             border-radius: 0.5rem;
             overflow: hidden;
         }
@@ -101,24 +105,24 @@
         }
 
         th {
-            background-color: #404040;
+            background-color: #30363d;
             padding: 0.75rem 1rem;
             text-align: left;
             font-size: 0.75rem;
             font-weight: 500;
             text-transform: uppercase;
-            color: #cccccc;
-            border-bottom: 1px solid #505050;
+            color: #8b949e;
+            border-bottom: 1px solid #404854;
         }
 
         td {
             padding: 0.75rem 1rem;
-            border-bottom: 1px solid #404040;
+            border-bottom: 1px solid #30363d;
             font-size: 0.875rem;
         }
 
         tr:hover {
-            background-color: #404040;
+            background-color: #30363d;
         }
 
         .status-badge {
@@ -143,17 +147,18 @@
 
         .submit-button {
             padding: 0.25rem 0.75rem;
-            background-color: #3b82f6;
+            background: linear-gradient(to right, #137fec, #1c8fed);
             color: white;
             border: none;
             border-radius: 0.375rem;
             font-size: 0.75rem;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
         }
 
         .submit-button:hover {
-            background-color: #2563eb;
+            background: linear-gradient(to right, #1c8fed, #2563eb);
+            transform: translateY(-1px);
         }
 
         .actions-cell {
@@ -180,16 +185,17 @@
 
         .retry-button {
             padding: 0.5rem 1rem;
-            background-color: #3b82f6;
+            background: linear-gradient(to right, #137fec, #1c8fed);
             color: white;
             border: none;
             border-radius: 0.5rem;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
         }
 
         .retry-button:hover {
-            background-color: #2563eb;
+            background: linear-gradient(to right, #1c8fed, #2563eb);
+            transform: translateY(-1px);
         }
 
         .truncate {
@@ -209,7 +215,7 @@
             </a>
             <div>
                 <h1 style="font-size: 1.25rem; font-weight: bold;">Admin Requests</h1>
-                <p style="font-size: 0.875rem; color: #aaaaaa;">Manage resource requests from Google Forms (Form Responses 1)</p>
+                <p style="font-size: 0.875rem; color: #8b949e;">Manage resource requests from Google Forms (Form Responses 1)</p>
             </div>
         </div>
     </header>
@@ -226,7 +232,7 @@
             <div class="loading">
                 <div class="spinner"></div>
                 <h3 style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">Loading Requests</h3>
-                <p style="color: #aaaaaa;">Fetching data from Google Sheets...</p>
+                <p style="color: #8b949e;">Fetching data from Google Sheets...</p>
             </div>
         </div>
     </main>
@@ -368,7 +374,7 @@
                 <div class="table-container" style="text-align: center; padding: 3rem;">
                     <div style="font-size: 3rem; margin-bottom: 1rem;">📥</div>
                     <h3 style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">No requests found</h3>
-                    <p style="color: #aaaaaa;">New requests will appear here when submitted</p>
+                    <p style="color: #8b949e;">New requests will appear here when submitted</p>
                 </div>
             `;
             updateRequestCount();
@@ -381,7 +387,7 @@
                 <div class="error-state">
                     <div class="error-icon">⚠️</div>
                     <h3 style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">Error Loading Data</h3>
-                    <p style="color: #aaaaaa; margin-bottom: 1rem;">Failed to load data from Google Sheets</p>
+                    <p style="color: #8b949e; margin-bottom: 1rem;">Failed to load data from Google Sheets</p>
                     <button class="retry-button" onclick="fetchRequests()">Retry</button>
                 </div>
             `;
