@@ -4,258 +4,409 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Requests - GovEx Academy</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-</head>
-<body class="bg-gray-900 text-white min-h-screen">
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-        const { createRoot } = ReactDOM;
-
-        // Icon component
-        function Icon({ name, size = 16, className = "", ...props }) {
-            const LucideIcon = lucide[name.charAt(0).toUpperCase() + name.slice(1).replace(/-([a-z])/g, (g) => g[1].toUpperCase())];
-            if (!LucideIcon) {
-                return <span className={`inline-block w-4 h-4 ${className}`} {...props} />;
-            }
-            return React.createElement(LucideIcon, { size, className, ...props });
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        // Google Sheets Service
-        const GoogleSheetsService = {
-            API_KEY: 'AIzaSyB2gKfKdxFq-jyaAbhFBj0-PxQ4y_tBIJA',
-            SHEET_ID: '1GSqiViIPp4GPAe4ugZ2ImXShsU1NP37CjT_I3Ck-AR4',
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            min-height: 100vh;
+        }
 
-            async fetchFormResponses() {
-                const RANGE = 'Form Responses 1!A2:K';
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.SHEET_ID}/values/${RANGE}?key=${this.API_KEY}`;
+        .header {
+            background-color: #2d2d2d;
+            border-bottom: 1px solid #404040;
+            padding: 1rem 1.5rem;
+        }
 
-                try {
-                    const response = await fetch(url);
-                    const data = await response.json();
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
 
-                    if (!data.values) {
-                        return [];
-                    }
+        .back-button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: #404040;
+            color: white;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+        }
 
-                    return data.values.map((row, index) => {
-                        const [
-                            timestamp = '',
-                            requesterName = '',
-                            email = '',
-                            topic = '',
-                            description = '',
-                            purpose = '',
-                            targetAudience = '',
-                            deadline = '',
-                            languages = '',
-                            urgencyLevel = '',
-                            additionalContext = ''
-                        ] = row;
+        .back-button:hover {
+            background-color: #505050;
+        }
 
-                        return {
-                            id: index + 1,
-                            timestamp,
-                            requesterName,
-                            email,
-                            topic,
-                            description,
-                            purpose,
-                            targetAudience,
-                            deadline,
-                            languages,
-                            urgencyLevel,
-                            additionalContext,
-                            status: 'doing'
-                        };
-                    });
-                } catch (error) {
-                    console.error('Error fetching form responses:', error);
-                    return [];
+        .main-content {
+            padding: 1.5rem;
+        }
+
+        .section-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-subtitle {
+            color: #aaaaaa;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 3px solid #404040;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .table-container {
+            background-color: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background-color: #404040;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: #cccccc;
+            border-bottom: 1px solid #505050;
+        }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #404040;
+            font-size: 0.875rem;
+        }
+
+        tr:hover {
+            background-color: #404040;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+
+        .status-doing {
+            background-color: #d97706;
+            color: white;
+        }
+
+        .status-done {
+            background-color: #059669;
+            color: white;
+        }
+
+        .submit-button {
+            padding: 0.25rem 0.75rem;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .submit-button:hover {
+            background-color: #2563eb;
+        }
+
+        .actions-cell {
+            text-align: right;
+        }
+
+        .actions-content {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
+        }
+
+        .error-state {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .error-icon {
+            color: #ef4444;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .retry-button {
+            padding: 0.5rem 1rem;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .retry-button:hover {
+            background-color: #2563eb;
+        }
+
+        .truncate {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <a href="./index.html" class="back-button">
+                ← Back to Dashboard
+            </a>
+            <div>
+                <h1 style="font-size: 1.25rem; font-weight: bold;">Admin Requests</h1>
+                <p style="font-size: 0.875rem; color: #aaaaaa;">Manage resource requests from Google Forms</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="section-header">
+            <h2 class="section-title">Resource Requests</h2>
+            <p class="section-subtitle" id="request-count">Loading requests from Google Forms...</p>
+        </div>
+
+        <div id="content-area">
+            <!-- Loading state -->
+            <div class="loading">
+                <div class="spinner"></div>
+                <h3 style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">Loading Requests</h3>
+                <p style="color: #aaaaaa;">Fetching data from Google Sheets...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Google Sheets API configuration
+        const API_KEY = 'AIzaSyB2gKfKdxFq-jyaAbhFBj0-PxQ4y_tBIJA';
+        const SHEET_ID = '1GSqiViIPp4GPAe4ugZ2ImXShsU1NP37CjT_I3Ck-AR4';
+        const RANGE = 'Form Responses 1!A2:K';
+
+        let requests = [];
+
+        // Fetch data from Google Sheets
+        async function fetchRequests() {
+            try {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!data.values) {
+                    renderEmptyState();
+                    return;
+                }
+
+                requests = data.values.map((row, index) => {
+                    const [
+                        timestamp = '',
+                        requesterName = '',
+                        email = '',
+                        topic = '',
+                        description = '',
+                        purpose = '',
+                        targetAudience = '',
+                        deadline = '',
+                        languages = '',
+                        urgencyLevel = '',
+                        additionalContext = ''
+                    ] = row;
+
+                    return {
+                        id: index + 1,
+                        timestamp,
+                        requesterName,
+                        email,
+                        topic,
+                        description,
+                        purpose,
+                        targetAudience,
+                        deadline,
+                        languages,
+                        urgencyLevel,
+                        additionalContext,
+                        status: 'doing'
+                    };
+                });
+
+                renderTable();
+                updateRequestCount();
+            } catch (error) {
+                console.error('Error fetching requests:', error);
+                renderErrorState();
+            }
+        }
+
+        // Render the requests table
+        function renderTable() {
+            const contentArea = document.getElementById('content-area');
+
+            const tableHTML = `
+                <div class="table-container">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Topic</th>
+                                    <th>Description</th>
+                                    <th>Purpose</th>
+                                    <th>Audience</th>
+                                    <th>Deadline</th>
+                                    <th>Languages</th>
+                                    <th>Urgency</th>
+                                    <th>Context</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${requests.map(request => `
+                                    <tr>
+                                        <td>${request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'N/A'}</td>
+                                        <td>${request.requesterName || 'N/A'}</td>
+                                        <td>${request.email || 'N/A'}</td>
+                                        <td>${request.topic || 'N/A'}</td>
+                                        <td class="truncate" title="${request.description || 'N/A'}">${request.description || 'N/A'}</td>
+                                        <td class="truncate" title="${request.purpose || 'N/A'}">${request.purpose || 'N/A'}</td>
+                                        <td>${request.targetAudience || 'N/A'}</td>
+                                        <td>${request.deadline || 'N/A'}</td>
+                                        <td>${request.languages || 'N/A'}</td>
+                                        <td>${request.urgencyLevel || 'N/A'}</td>
+                                        <td class="truncate" title="${request.additionalContext || 'N/A'}">${request.additionalContext || 'N/A'}</td>
+                                        <td class="actions-cell">
+                                            <div class="actions-content">
+                                                <button class="status-badge ${request.status === 'done' ? 'status-done' : 'status-doing'}"
+                                                        onclick="toggleStatus(${request.id})">
+                                                    ${request.status === 'done' ? 'Done' : 'Doing'}
+                                                </button>
+                                                <button class="submit-button" onclick="submitResource(${request.id})">
+                                                    Submit Resource
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            contentArea.innerHTML = tableHTML;
+        }
+
+        // Render empty state
+        function renderEmptyState() {
+            const contentArea = document.getElementById('content-area');
+            contentArea.innerHTML = `
+                <div class="table-container" style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📥</div>
+                    <h3 style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">No requests found</h3>
+                    <p style="color: #aaaaaa;">New requests will appear here when submitted</p>
+                </div>
+            `;
+            updateRequestCount();
+        }
+
+        // Render error state
+        function renderErrorState() {
+            const contentArea = document.getElementById('content-area');
+            contentArea.innerHTML = `
+                <div class="error-state">
+                    <div class="error-icon">⚠️</div>
+                    <h3 style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">Error Loading Data</h3>
+                    <p style="color: #aaaaaa; margin-bottom: 1rem;">Failed to load data from Google Sheets</p>
+                    <button class="retry-button" onclick="fetchRequests()">Retry</button>
+                </div>
+            `;
+        }
+
+        // Update request count
+        function updateRequestCount() {
+            const countElement = document.getElementById('request-count');
+            countElement.textContent = `Showing ${requests.length} requests from Google Forms`;
+        }
+
+        // Toggle status between doing and done
+        function toggleStatus(requestId) {
+            const request = requests.find(r => r.id === requestId);
+            if (request) {
+                request.status = request.status === 'doing' ? 'done' : 'doing';
+                renderTable();
+            }
+        }
+
+        // Submit resource
+        function submitResource(requestId) {
+            const url = prompt('Enter final resource URL:');
+            if (url && url.trim()) {
+                const request = requests.find(r => r.id === requestId);
+                if (request) {
+                    request.status = 'done';
+                    renderTable();
+                    alert('Resource submitted successfully!');
                 }
             }
-        };
-
-        function AdminRequestsApp() {
-            const [requests, setRequests] = useState([]);
-            const [isLoading, setIsLoading] = useState(true);
-            const [error, setError] = useState(null);
-
-            useEffect(() => {
-                const loadData = async () => {
-                    try {
-                        setIsLoading(true);
-                        const data = await GoogleSheetsService.fetchFormResponses();
-                        setRequests(data);
-                        setError(null);
-                    } catch (err) {
-                        setError('Failed to load data from Google Sheets');
-                        console.error(err);
-                    } finally {
-                        setIsLoading(false);
-                    }
-                };
-
-                loadData();
-            }, []);
-
-            const updateStatus = (requestId, newStatus) => {
-                setRequests(prev => prev.map(req =>
-                    req.id === requestId ? { ...req, status: newStatus } : req
-                ));
-            };
-
-            if (isLoading) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                            <h3 className="text-lg font-medium mb-2">Loading Requests</h3>
-                            <p className="text-gray-400">Fetching data from Google Sheets...</p>
-                        </div>
-                    </div>
-                );
-            }
-
-            if (error) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="text-red-400 mb-4">
-                                <Icon name="alert-circle" size={48} className="mx-auto" />
-                            </div>
-                            <h3 className="text-lg font-medium mb-2">Error Loading Data</h3>
-                            <p className="text-gray-400 mb-4">{error}</p>
-                            <button
-                                onClick={() => window.location.reload()}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                                Retry
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-
-            return (
-                <div className="min-h-screen bg-gray-900">
-                    {/* Header */}
-                    <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
-                        <div className="flex items-center space-x-4">
-                            <button
-                                onClick={() => window.location.href = './index.html'}
-                                className="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                            >
-                                <Icon name="arrow-left" size={16} />
-                                <span>Back to Dashboard</span>
-                            </button>
-                            <div>
-                                <h1 className="text-xl font-bold text-white">Admin Requests</h1>
-                                <p className="text-sm text-gray-400">Manage resource requests from Google Forms</p>
-                            </div>
-                        </div>
-                    </header>
-
-                    {/* Main Content */}
-                    <main className="p-6">
-                        <div className="mb-6">
-                            <h2 className="text-2xl font-semibold text-white mb-2">Resource Requests</h2>
-                            <p className="text-gray-400">
-                                Showing {requests.length} requests from Google Forms
-                            </p>
-                        </div>
-
-                        {requests.length === 0 ? (
-                            <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
-                                <Icon name="inbox" className="mx-auto text-gray-400 mb-4" size={48} />
-                                <h3 className="text-lg font-medium text-white mb-2">No requests found</h3>
-                                <p className="text-gray-400">New requests will appear here when submitted</p>
-                            </div>
-                        ) : (
-                            <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-gray-700 border-b border-gray-600">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Timestamp</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Name</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Email</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Topic</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Description</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Purpose</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Audience</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Deadline</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Languages</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Urgency</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase">Context</th>
-                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-300 uppercase">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-600">
-                                            {requests.map((request) => (
-                                                <tr key={request.id} className="hover:bg-gray-700 transition-colors">
-                                                    <td className="px-4 py-3 text-sm text-white">
-                                                        {request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'N/A'}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-white">{request.requesterName || 'N/A'}</td>
-                                                    <td className="px-4 py-3 text-sm text-white">{request.email || 'N/A'}</td>
-                                                    <td className="px-4 py-3 text-sm text-white">{request.topic || 'N/A'}</td>
-                                                    <td className="px-4 py-3 text-sm text-white max-w-xs truncate">{request.description || 'N/A'}</td>
-                                                    <td className="px-4 py-3 text-sm text-white max-w-xs truncate">{request.purpose || 'N/A'}</td>
-                                                    <td className="px-4 py-3 text-sm text-white">{request.targetAudience || 'N/A'}</td>
-                                                    <td className="px-4 py-3 text-sm text-white">{request.deadline || 'N/A'}</td>
-                                                    <td className="px-4 py-3 text-sm text-white">{request.languages || 'N/A'}</td>
-                                                    <td className="px-4 py-3 text-sm text-white">{request.urgencyLevel || 'N/A'}</td>
-                                                    <td className="px-4 py-3 text-sm text-white max-w-xs truncate">{request.additionalContext || 'N/A'}</td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <div className="flex flex-col items-end gap-2">
-                                                            {/* Status Toggle */}
-                                                            <button
-                                                                onClick={() => updateStatus(request.id, request.status === 'doing' ? 'done' : 'doing')}
-                                                                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                                                                    request.status === 'done'
-                                                                        ? 'bg-green-600 text-white'
-                                                                        : 'bg-yellow-600 text-white'
-                                                                }`}
-                                                            >
-                                                                {request.status === 'done' ? 'Done' : 'Doing'}
-                                                            </button>
-
-                                                            {/* Submit Resource Button */}
-                                                            <button
-                                                                onClick={() => {
-                                                                    const url = prompt('Enter final resource URL:');
-                                                                    if (url) {
-                                                                        updateStatus(request.id, 'done');
-                                                                        alert('Resource submitted successfully!');
-                                                                    }
-                                                                }}
-                                                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
-                                                            >
-                                                                Submit Resource
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-                    </main>
-                </div>
-            );
         }
 
-        // Render the app
-        const root = createRoot(document.getElementById('root'));
-        root.render(React.createElement(AdminRequestsApp));
+        // Load data when page loads
+        window.addEventListener('load', fetchRequests);
     </script>
 </body>
 </html>
