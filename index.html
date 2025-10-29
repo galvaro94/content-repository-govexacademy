@@ -1917,18 +1917,33 @@
                 return /^https?:\/\//i.test(str.trim());
             },
 
-            // Infer file type from URL extension
+            // Infer file type from URL extension - returns proper file extensions
             inferFileType: (url) => {
-                if (!url || !DataUtils.isUrl(url)) return "other";
+                if (!url || !DataUtils.isUrl(url)) return "";
                 try {
                     const ext = new URL(url).pathname.split(".").pop()?.toLowerCase();
-                    if (["pdf"].includes(ext)) return "pdf";
-                    if (["doc", "docx"].includes(ext)) return "doc";
-                    if (["xls", "xlsx", "gsheet"].includes(ext) || url.includes('spreadsheets')) return "sheet";
-                    if (["ppt", "pptx", "gslide"].includes(ext) || url.includes('presentation')) return "slide";
-                    return "other";
+
+                    // Return proper file extensions that match our system
+                    if (ext === "pdf") return ".pdf";
+                    if (ext === "doc") return ".doc";
+                    if (ext === "docx") return ".docx";
+                    if (ext === "xls") return ".xls";
+                    if (ext === "xlsx") return ".xlsx";
+                    if (ext === "ppt") return ".ppt";
+                    if (ext === "pptx") return ".pptx";
+                    if (ext === "html" || ext === "htm") return ".html";
+
+                    // Handle Google services URLs
+                    if (url.includes('spreadsheets.google.com') || url.includes('sheets.google.com')) return ".xlsx";
+                    if (url.includes('docs.google.com/document')) return ".docx";
+                    if (url.includes('docs.google.com/presentation')) return ".pptx";
+
+                    // If we find an extension, return it with dot
+                    if (ext && ext.length <= 5) return "." + ext;
+
+                    return "";
                 } catch (e) {
-                    return "other";
+                    return "";
                 }
             },
 
@@ -2022,7 +2037,8 @@
                     tags: DataUtils.parseArrayField(topics),
                     category: DataUtils.parseArrayField(programs)[0] || null, // Use first program as category
                     linkUrl: DataUtils.isUrl(primaryUrl) ? primaryUrl.trim() : null,
-                    fileType: DataUtils.inferFileType(primaryUrl),
+                    // Prioritize database fileType over URL inference
+                    fileType: fileType.trim() || DataUtils.inferFileType(primaryUrl),
                     ownerEmail: submittedBy.includes('@') ? submittedBy.trim() : null,
                     submittedAt: DataUtils.parseDate(timestamp),
                     status: "new", // Default status
@@ -5284,6 +5300,17 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 return topicColors[index % topicColors.length];
             };
 
+            // Helper function to get clean file type display
+            const getFileTypeDisplay = (fileType) => {
+                if (!fileType) return 'Unknown';
+
+                // If it starts with a dot, remove it for display
+                let cleanType = fileType.startsWith('.') ? fileType.substring(1) : fileType;
+
+                // Convert to uppercase for better display
+                return cleanType.toUpperCase();
+            };
+
             // Get programs for this resource
             const resourcePrograms = resource.programsUsed || [];
 
@@ -5357,7 +5384,7 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                 fileTypeColors[resource.fileType] || 'bg-gray-600'
                             }`}>
                                 <Icon name={fileTypeIcons[resource.fileType] || 'file'} size={12} />
-                                <span>{resource.fileType}</span>
+                                <span>{getFileTypeDisplay(resource.fileType)}</span>
                             </span>
                         )}
 
