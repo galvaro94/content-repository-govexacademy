@@ -32,26 +32,66 @@ jobs:
         // Read the index.html file
         let indexContent = fs.readFileSync('index.html', 'utf8');
 
+        const apiKey = process.env.CLAUDE_API_KEY;
+        console.log('📋 Environment check:');
+        console.log('- API Key available:', !!apiKey);
+        console.log('- API Key length:', apiKey ? apiKey.length : 0);
+        console.log('- API Key preview:', apiKey ? `${apiKey.substring(0, 12)}...` : 'None');
+
+        if (!apiKey) {
+            console.error('❌ CLAUDE_API_KEY environment variable is not set');
+            process.exit(1);
+        }
+
         // Create the API key injection script
-        const apiKeyScript = `
-        <script>
+        const apiKeyScript = `    <script>
         // Securely inject Claude API key from GitHub Secrets
-        window.CLAUDE_API_KEY = '${process.env.CLAUDE_API_KEY || ''}';
+        window.CLAUDE_API_KEY = '${apiKey}';
+        console.log('🔑 Claude API key injected successfully');
         </script>`;
 
-        // Inject the script before the closing head tag
-        indexContent = indexContent.replace('</head>', `${apiKeyScript}\n</head>`);
+        // Check if already injected (avoid double injection)
+        if (indexContent.includes('window.CLAUDE_API_KEY')) {
+            console.log('⚠️ API key already injected, skipping');
+        } else {
+            // Inject the script before the closing head tag
+            const beforeInjection = indexContent.includes('</head>');
+            indexContent = indexContent.replace('</head>', `${apiKeyScript}\n</head>`);
+            const afterInjection = indexContent.includes('window.CLAUDE_API_KEY');
 
-        // Write back to index.html
-        fs.writeFileSync('index.html', indexContent);
+            console.log('📊 Injection status:');
+            console.log('- Found </head> tag:', beforeInjection);
+            console.log('- API key script added:', afterInjection);
 
-        console.log('✅ API key injected successfully');
+            if (!afterInjection) {
+                console.error('❌ Failed to inject API key script');
+                process.exit(1);
+            }
+
+            // Write back to index.html
+            fs.writeFileSync('index.html', indexContent);
+            console.log('✅ API key injected successfully');
+        }
         EOF
 
     - name: Inject API key into build
       env:
         CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
       run: node inject-api-key.js
+
+    - name: Validate API key injection
+      run: |
+        echo "🔍 Validating API key injection..."
+        if grep -q "window.CLAUDE_API_KEY" index.html; then
+          echo "✅ API key script found in index.html"
+          echo "📄 Injection context:"
+          grep -A 2 -B 2 "window.CLAUDE_API_KEY" index.html
+        else
+          echo "❌ API key script NOT found in index.html"
+          echo "🔍 Checking head section:"
+          grep -A 10 -B 10 "</head>" index.html || echo "No </head> tag found"
+          exit 1
+        fi
 
     - name: Setup GitHub Pages
       uses: actions/configure-pages@v4
