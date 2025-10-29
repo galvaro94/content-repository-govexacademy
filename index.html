@@ -7371,10 +7371,10 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                     {/* Manage Resources Button - Admin Only */}
                                     {currentUser?.role === 'Administrator' && (
                                         <button
-                                            onClick={() => window.open('./admin-manage-resources.html', '_blank', 'noopener,noreferrer')}
+                                            onClick={() => window.open('./admin-requests.html', '_blank', 'noopener,noreferrer')}
                                             className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#30363d] to-[#484f58] hover:from-[#484f58] hover:to-[#56606d] text-[#e6edf3] rounded-xl transition-all duration-200 font-medium text-sm shadow-lg ring-1 ring-white/10 hover:shadow-xl hover:scale-105"
-                                            title="Manage resources"
-                                            aria-label="Manage resources"
+                                            title="Manage requests"
+                                            aria-label="Manage requests"
                                         >
                                             <Icon name="settings" size={16} />
                                             <span>Manage Resources</span>

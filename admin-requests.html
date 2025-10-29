@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Requests - GovEx Academy</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0d1117;
+            color: #e6edf3;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const { createRoot } = ReactDOM;
+
+        // Icon component using Lucide icons
+        function Icon({ name, size = 16, className = "", ...props }) {
+            const LucideIcon = lucide[name.charAt(0).toUpperCase() + name.slice(1).replace(/-([a-z])/g, (g) => g[1].toUpperCase())];
+            if (!LucideIcon) {
+                console.warn(`Icon "${name}" not found`);
+                return <span className={`inline-block w-${Math.floor(size/4)} h-${Math.floor(size/4)} ${className}`} {...props} />;
+            }
+            return <LucideIcon size={size} className={className} {...props} />;
+        }
+
+        // Google Sheets Service for Form Responses 1
+        const GoogleSheetsService = {
+            API_KEY: 'AIzaSyB2gKfKdxFq-jyaAbhFBj0-PxQ4y_tBIJA',
+            SHEET_ID: '1GSqiViIPp4GPAe4ugZ2ImXShsU1NP37CjT_I3Ck-AR4',
+
+            async fetchFormResponses() {
+                const RANGE = 'Form Responses 1!A2:K'; // 11 columns as specified
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.SHEET_ID}/values/${RANGE}?key=${this.API_KEY}`;
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (!data.values) {
+                        return [];
+                    }
+
+                    return data.values.map((row, index) => {
+                        const [
+                            timestamp = '',
+                            requesterName = '',
+                            email = '',
+                            topic = '',
+                            description = '',
+                            purpose = '',
+                            targetAudience = '',
+                            deadline = '',
+                            languages = '',
+                            urgencyLevel = '',
+                            additionalContext = ''
+                        ] = row;
+
+                        return {
+                            id: index + 1,
+                            timestamp,
+                            requesterName,
+                            email,
+                            topic,
+                            description,
+                            purpose,
+                            targetAudience,
+                            deadline,
+                            languages,
+                            urgencyLevel,
+                            additionalContext,
+                            status: 'doing' // Default status
+                        };
+                    });
+                } catch (error) {
+                    console.error('Error fetching form responses:', error);
+                    throw error;
+                }
+            }
+        };
+
+        // Submit Final Resource Modal
+        function SubmitFinalResourceModal({ isOpen, onClose, request, onSubmit }) {
+            const [resourceUrl, setResourceUrl] = useState('');
+            const [notes, setNotes] = useState('');
+            const [isSubmitting, setIsSubmitting] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!resourceUrl.trim()) return;
+
+                setIsSubmitting(true);
+                try {
+                    await onSubmit(request.id, {
+                        resourceUrl: resourceUrl.trim(),
+                        notes: notes.trim()
+                    });
+                    setResourceUrl('');
+                    setNotes('');
+                    onClose();
+                } catch (error) {
+                    console.error('Error submitting final resource:', error);
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-[#161b22] border border-[#30363d] rounded-xl shadow-xl w-full max-w-md">
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold text-[#e6edf3]">Submit Final Resource</h3>
+                                <button
+                                    onClick={onClose}
+                                    className="text-[#8b949e] hover:text-[#e6edf3] transition-colors"
+                                >
+                                    <Icon name="x" size={20} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-[#e6edf3] mb-2">
+                                        Final Resource URL *
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={resourceUrl}
+                                        onChange={(e) => setResourceUrl(e.target.value)}
+                                        className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:ring-2 focus:ring-[#137fec] focus:border-transparent"
+                                        placeholder="https://example.com/resource"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-[#e6edf3] mb-2">
+                                        Notes (optional)
+                                    </label>
+                                    <textarea
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        rows={3}
+                                        className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:ring-2 focus:ring-[#137fec] focus:border-transparent resize-none"
+                                        placeholder="Additional notes about the resource..."
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-3 pt-4">
+                                    <button
+                                        type="submit"
+                                        disabled={!resourceUrl.trim() || isSubmitting}
+                                        className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#137fec] to-[#1c8fed] hover:from-[#1c8fed] hover:to-[#2b9fff] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-sm shadow-lg ring-1 ring-white/10 hover:shadow-xl hover:scale-105"
+                                    >
+                                        {isSubmitting ? (
+                                            <>
+                                                <Icon name="loader-2" size={16} className="animate-spin" />
+                                                <span>Submitting...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Icon name="check" size={16} />
+                                                <span>Submit Resource</span>
+                                            </>
+                                        )}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
+                                        className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#30363d] to-[#484f58] hover:from-[#484f58] hover:to-[#56606d] text-[#e6edf3] rounded-xl transition-all duration-200 font-medium text-sm shadow-lg ring-1 ring-white/10 hover:shadow-xl hover:scale-105"
+                                    >
+                                        <Icon name="x" size={16} />
+                                        <span>Cancel</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function AdminRequestsApp() {
+            const [requests, setRequests] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [statusOverrides, setStatusOverrides] = useState({});
+            const [selectedRequest, setSelectedRequest] = useState(null);
+            const [showSubmitModal, setShowSubmitModal] = useState(false);
+
+            // Load status overrides from localStorage
+            useEffect(() => {
+                const saved = localStorage.getItem('adminRequestStatuses');
+                if (saved) {
+                    try {
+                        setStatusOverrides(JSON.parse(saved));
+                    } catch (e) {
+                        console.error('Error loading saved statuses:', e);
+                    }
+                }
+            }, []);
+
+            // Save status overrides to localStorage
+            useEffect(() => {
+                localStorage.setItem('adminRequestStatuses', JSON.stringify(statusOverrides));
+            }, [statusOverrides]);
+
+            // Load data from Google Sheets
+            useEffect(() => {
+                const loadData = async () => {
+                    try {
+                        setIsLoading(true);
+                        const data = await GoogleSheetsService.fetchFormResponses();
+                        setRequests(data);
+                        setError(null);
+                    } catch (err) {
+                        setError('Failed to load data from Google Sheets');
+                        console.error(err);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                };
+
+                loadData();
+
+                // Refresh every 30 seconds
+                const interval = setInterval(loadData, 30000);
+                return () => clearInterval(interval);
+            }, []);
+
+            const updateStatus = (requestId, newStatus) => {
+                setStatusOverrides(prev => ({
+                    ...prev,
+                    [requestId]: newStatus
+                }));
+            };
+
+            const getStatus = (request) => {
+                return statusOverrides[request.id] || request.status || 'doing';
+            };
+
+            const handleSubmitFinalResource = async (requestId, data) => {
+                // TODO: Implement API call to POST /api/requests/:id/final-resource
+                console.log('Submitting final resource for request:', requestId, data);
+
+                // Set status to done
+                updateStatus(requestId, 'done');
+
+                // Show success message (you can implement toast notifications here)
+                alert('Final resource submitted successfully!');
+            };
+
+            const handleOpenSubmitModal = (request) => {
+                setSelectedRequest(request);
+                setShowSubmitModal(true);
+            };
+
+            const requestsWithStatus = useMemo(() => {
+                return requests.map(request => ({
+                    ...request,
+                    currentStatus: getStatus(request)
+                }));
+            }, [requests, statusOverrides]);
+
+            if (isLoading) {
+                return (
+                    <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+                        <div className="text-center">
+                            <Icon name="loader-2" className="mx-auto text-[#8b949e] mb-4 animate-spin" size={48} />
+                            <h3 className="text-lg font-medium text-[#e6edf3] mb-2">Loading Requests</h3>
+                            <p className="text-[#8b949e]">Syncing data from Google Sheets...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (error) {
+                return (
+                    <div className="min-h-screen bg-[#0d1117] flex items-center justify-center">
+                        <div className="text-center">
+                            <Icon name="alert-circle" className="mx-auto text-red-400 mb-4" size={48} />
+                            <h3 className="text-lg font-medium text-[#e6edf3] mb-2">Error Loading Data</h3>
+                            <p className="text-[#8b949e] mb-4">{error}</p>
+                            <button
+                                onClick={() => window.location.reload()}
+                                className="px-4 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#1c8fed] transition-colors"
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-[#0d1117]">
+                    {/* Header */}
+                    <header className="bg-gradient-to-r from-[#0d1117] via-[#161b22] to-[#0d1117] border-b border-[#30363d] backdrop-blur-sm px-6 py-5 shadow-lg relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#137fec]/5 via-transparent to-[#137fec]/5"></div>
+                        <div className="relative">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <button
+                                        onClick={() => window.location.href = './index.html'}
+                                        className="p-2 hover:bg-[#30363d] rounded-lg transition-colors"
+                                    >
+                                        <Icon name="arrow-left" className="text-[#8b949e]" />
+                                    </button>
+                                    <div>
+                                        <h1 className="text-xl font-bold bg-gradient-to-r from-[#e6edf3] to-[#f0f6fc] bg-clip-text text-transparent tracking-tight">Admin Requests</h1>
+                                        <p className="text-xs text-[#8b949e] font-medium">Manage resource requests from Google Forms</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Main Content */}
+                    <main className="flex-1 overflow-y-auto p-6">
+                        <div className="mb-6 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-semibold text-[#e6edf3]">Resource Requests</h2>
+                                <p className="text-[#8b949e] mt-1">
+                                    Showing {requestsWithStatus.length} requests from Google Forms
+                                </p>
+                            </div>
+                        </div>
+
+                        {requestsWithStatus.length === 0 ? (
+                            <div className="text-center py-12 bg-[#161b22] rounded-lg border border-[#30363d]">
+                                <Icon name="inbox" className="mx-auto text-[#8b949e] mb-4" size={48} />
+                                <h3 className="text-lg font-medium text-[#e6edf3] mb-2">No requests found</h3>
+                                <p className="text-[#8b949e]">New requests will appear here when submitted</p>
+                            </div>
+                        ) : (
+                            <div className="bg-[#161b22] border border-[#30363d] rounded-lg overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-[#21262d] border-b border-[#30363d]">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase tracking-wider">Timestamp</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase tracking-wider">Requester Name</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase tracking-wider">Email</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase tracking-wider">Topic</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase tracking-wider">Description</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase tracking-wider">Purpose</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase tracking-wider">Target Audience</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase tracking-wider">Deadline</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase tracking-wider">Languages</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase tracking-wider">Urgency</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-[#8b949e] uppercase tracking-wider">Additional Context</th>
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-[#8b949e] uppercase tracking-wider">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#30363d]">
+                                            {requestsWithStatus.map((request) => (
+                                                <tr key={request.id} className="hover:bg-[#21262d] transition-colors">
+                                                    <td className="px-4 py-3 text-sm text-[#e6edf3]">
+                                                        {new Date(request.timestamp).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-[#e6edf3]">{request.requesterName || 'N/A'}</td>
+                                                    <td className="px-4 py-3 text-sm text-[#e6edf3]">{request.email || 'N/A'}</td>
+                                                    <td className="px-4 py-3 text-sm text-[#e6edf3]">{request.topic || 'N/A'}</td>
+                                                    <td className="px-4 py-3 text-sm text-[#e6edf3] max-w-xs truncate">{request.description || 'N/A'}</td>
+                                                    <td className="px-4 py-3 text-sm text-[#e6edf3] max-w-xs truncate">{request.purpose || 'N/A'}</td>
+                                                    <td className="px-4 py-3 text-sm text-[#e6edf3]">{request.targetAudience || 'N/A'}</td>
+                                                    <td className="px-4 py-3 text-sm text-[#e6edf3]">{request.deadline || 'N/A'}</td>
+                                                    <td className="px-4 py-3 text-sm text-[#e6edf3]">{request.languages || 'N/A'}</td>
+                                                    <td className="px-4 py-3 text-sm text-[#e6edf3]">{request.urgencyLevel || 'N/A'}</td>
+                                                    <td className="px-4 py-3 text-sm text-[#e6edf3] max-w-xs truncate">{request.additionalContext || 'N/A'}</td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <div className="flex flex-col items-end gap-2">
+                                                            {/* Status Toggle */}
+                                                            <label className="inline-flex items-center cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={request.currentStatus === 'done'}
+                                                                    onChange={(e) => updateStatus(request.id, e.target.checked ? 'done' : 'doing')}
+                                                                    className="sr-only"
+                                                                />
+                                                                <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                                    request.currentStatus === 'done'
+                                                                        ? 'bg-[#137fec]'
+                                                                        : 'bg-[#30363d]'
+                                                                }`}>
+                                                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                                        request.currentStatus === 'done' ? 'translate-x-6' : 'translate-x-1'
+                                                                    }`} />
+                                                                </div>
+                                                                <span className="ml-2 text-xs text-[#8b949e]">
+                                                                    {request.currentStatus === 'done' ? 'Done' : 'Doing'}
+                                                                </span>
+                                                            </label>
+
+                                                            {/* Submit Final Resource Button */}
+                                                            <button
+                                                                onClick={() => handleOpenSubmitModal(request)}
+                                                                className="flex items-center space-x-1 px-3 py-1.5 bg-gradient-to-r from-[#137fec] to-[#1c8fed] hover:from-[#1c8fed] hover:to-[#2b9fff] text-white rounded-lg transition-all duration-200 font-medium text-xs shadow-lg ring-1 ring-white/10 hover:shadow-xl hover:scale-105"
+                                                                title="Submit final resource"
+                                                            >
+                                                                <Icon name="upload" size={12} />
+                                                                <span>Submit Resource</span>
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Submit Final Resource Modal */}
+                    <SubmitFinalResourceModal
+                        isOpen={showSubmitModal}
+                        onClose={() => setShowSubmitModal(false)}
+                        request={selectedRequest}
+                        onSubmit={handleSubmitFinalResource}
+                    />
+                </div>
+            );
+        }
+
+        // Render the app
+        const root = createRoot(document.getElementById('root'));
+        root.render(<AdminRequestsApp />);
+    </script>
+</body>
+</html>
