@@ -36,18 +36,22 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background-color: #30363d;
+            padding: 0.625rem 1rem;
+            background: linear-gradient(to right, #30363d, #484f58);
             color: #e6edf3;
             text-decoration: none;
-            border-radius: 0.5rem;
-            transition: background-color 0.2s;
-            border: 1px solid #30363d;
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 0.875rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            ring: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .back-button:hover {
-            background-color: #404854;
-            border-color: #404854;
+            background: linear-gradient(to right, #484f58, #56606d);
+            transform: scale(1.05);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
         .main-content {
@@ -132,7 +136,12 @@
             font-weight: 500;
             cursor: pointer;
             border: none;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .status-badge:hover {
+            transform: scale(1.05);
         }
 
         .status-doing {
@@ -146,19 +155,28 @@
         }
 
         .submit-button {
-            padding: 0.25rem 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
             background: linear-gradient(to right, #137fec, #1c8fed);
             color: white;
+            text-decoration: none;
             border: none;
-            border-radius: 0.375rem;
-            font-size: 0.75rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            ring: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .submit-button:hover {
-            background: linear-gradient(to right, #1c8fed, #2563eb);
-            transform: translateY(-1px);
+            background: linear-gradient(to right, #1c8fed, #2b9fff);
+            transform: scale(1.05);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
         .actions-cell {
@@ -184,18 +202,27 @@
         }
 
         .retry-button {
-            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
             background: linear-gradient(to right, #137fec, #1c8fed);
             color: white;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            ring: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .retry-button:hover {
-            background: linear-gradient(to right, #1c8fed, #2563eb);
-            transform: translateY(-1px);
+            background: linear-gradient(to right, #1c8fed, #2b9fff);
+            transform: scale(1.05);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
         .truncate {
@@ -351,9 +378,12 @@
                                                         onclick="toggleStatus(${request.id})">
                                                     ${request.status === 'done' ? 'Done' : 'Doing'}
                                                 </button>
-                                                <button class="submit-button" onclick="submitResource(${request.id})">
-                                                    Submit Resource
-                                                </button>
+                                                <a href="https://docs.google.com/forms/d/e/1FAIpQLSfl1OH9lktUxe-Hk2hkkMsoPWIdLpkHtNB_GyOYRa6uJuCAZA/viewform?usp=header"
+                                                   target="_blank"
+                                                   rel="noopener noreferrer"
+                                                   class="submit-button">
+                                                    📝 Submit Resource
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>
@@ -408,18 +438,6 @@
             }
         }
 
-        // Submit resource
-        function submitResource(requestId) {
-            const url = prompt('Enter final resource URL:');
-            if (url && url.trim()) {
-                const request = requests.find(r => r.id === requestId);
-                if (request) {
-                    request.status = 'done';
-                    renderTable();
-                    alert('Resource submitted successfully!');
-                }
-            }
-        }
 
         // Load data when page loads
         window.addEventListener('load', fetchRequests);
