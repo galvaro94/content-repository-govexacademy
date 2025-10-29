@@ -233,9 +233,9 @@
 
     <script>
         // Google Sheets API configuration
-        const API_KEY = 'AIzaSyB2gKfKdxFq-jyaAbhFBj0-PxQ4y_tBIJA';
+        const API_KEY = 'AIzaSyBUa8W2lZXxRNfqJ3Ov0MWUPeTd0TjkRhg';
         const SHEET_ID = '1GSqiViIPp4GPAe4ugZ2ImXShsU1NP37CjT_I3Ck-AR4';
-        const RANGE = 'Form Responses 1!A2:K';
+        const RANGE = 'Form Responses 1!A1:K';
 
         let requests = [];
 
@@ -243,15 +243,23 @@
         async function fetchRequests() {
             try {
                 const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+                console.log('Fetching from URL:', url);
                 const response = await fetch(url);
+                console.log('Response status:', response.status);
                 const data = await response.json();
+                console.log('Response data:', data);
 
                 if (!data.values) {
+                    console.log('No values in response, showing empty state');
                     renderEmptyState();
                     return;
                 }
 
-                requests = data.values.map((row, index) => {
+                console.log('Found', data.values.length, 'rows of data');
+
+                // Skip header row (index 0)
+                requests = data.values.slice(1).map((row, index) => {
+                    console.log('Processing row', index + 1, ':', row);
                     const [
                         timestamp = '',
                         requesterName = '',
@@ -266,7 +274,7 @@
                         additionalContext = ''
                     ] = row;
 
-                    return {
+                    const request = {
                         id: index + 1,
                         timestamp,
                         requesterName,
@@ -281,6 +289,8 @@
                         additionalContext,
                         status: 'doing'
                     };
+                    console.log('Created request object:', request);
+                    return request;
                 });
 
                 renderTable();
