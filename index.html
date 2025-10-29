@@ -7354,13 +7354,31 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                                         Showing {filteredResources.length} of {resources.length} resources
                                     </p>
                                 </div>
-                                <button
-                                    onClick={() => setShowResourceModal(true)}
-                                    className="px-4 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#1c8fed] transition-colors flex items-center space-x-2"
-                                >
-                                    <Icon name="plus" size={16} />
-                                    <span>Add Resource</span>
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    {/* Request New Resource Button */}
+                                    <button
+                                        onClick={() => setShowEnhancedRequestModal(true)}
+                                        className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#137fec] to-[#1c8fed] hover:from-[#1c8fed] hover:to-[#2b9fff] text-white rounded-xl transition-all duration-200 font-medium text-sm shadow-lg ring-1 ring-white/10 hover:shadow-xl hover:scale-105"
+                                        title="Request a new resource"
+                                        aria-label="Request a new resource"
+                                    >
+                                        <Icon name="plus" size={16} />
+                                        <span>Request New Resource</span>
+                                    </button>
+
+                                    {/* Manage Resources Button - Admin Only */}
+                                    {currentUser?.role === 'Administrator' && (
+                                        <button
+                                            onClick={() => window.open('./admin-manage-resources.html', '_blank', 'noopener,noreferrer')}
+                                            className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#30363d] to-[#484f58] hover:from-[#484f58] hover:to-[#56606d] text-[#e6edf3] rounded-xl transition-all duration-200 font-medium text-sm shadow-lg ring-1 ring-white/10 hover:shadow-xl hover:scale-105"
+                                            title="Manage resources"
+                                            aria-label="Manage resources"
+                                        >
+                                            <Icon name="settings" size={16} />
+                                            <span>Manage Resources</span>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             {isLoading ? (
