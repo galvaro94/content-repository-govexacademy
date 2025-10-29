@@ -1,0 +1,66 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Create API key injection script
+      run: |
+        cat > inject-api-key.js << 'EOF'
+        const fs = require('fs');
+
+        // Read the index.html file
+        let indexContent = fs.readFileSync('index.html', 'utf8');
+
+        // Create the API key injection script
+        const apiKeyScript = `
+        <script>
+        // Securely inject Claude API key from GitHub Secrets
+        window.CLAUDE_API_KEY = '${process.env.CLAUDE_API_KEY || ''}';
+        </script>`;
+
+        // Inject the script before the closing head tag
+        indexContent = indexContent.replace('</head>', `${apiKeyScript}\n</head>`);
+
+        // Write back to index.html
+        fs.writeFileSync('index.html', indexContent);
+
+        console.log('✅ API key injected successfully');
+        EOF
+
+    - name: Inject API key into build
+      env:
+        CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+      run: node inject-api-key.js
+
+    - name: Setup GitHub Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: '.'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
