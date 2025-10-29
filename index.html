@@ -2326,7 +2326,7 @@
             const showEmptyState = isOpen && !loading && !hasResults && searchQuery.length >= searchConfig.minCharsToQuery;
 
             return (
-                <div className="relative flex-1 max-w-4xl">
+                <div className="relative flex-1 max-w-5xl">
                     <div className="relative">
                         <Icon name="search" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8b949e]" size={18} />
                         <input
@@ -2338,7 +2338,7 @@
                             onFocus={handleFocus}
                             onBlur={handleBlur}
                             onKeyDown={handleKeyDown}
-                            className="w-full bg-[#0d1117] border border-[#30363d] rounded-lg pl-10 pr-4 py-2 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] transition-colors"
+                            className="w-full bg-gradient-to-r from-[#0d1927] via-[#1a2332] to-[#0d1927] border border-[#137fec]/20 rounded-xl pl-10 pr-4 py-3 text-[#e6edf3] placeholder-[#8b949e] focus:outline-none focus:border-[#137fec] focus:bg-gradient-to-r focus:from-[#0d1927] focus:to-[#1a2b3d] transition-all duration-200 shadow-lg backdrop-blur-sm"
                             role="combobox"
                             aria-expanded={isOpen}
                             aria-autocomplete="list"
@@ -3263,12 +3263,11 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                             console.log('NotificationBell: Button clicked, toggling dropdown');
                             setShowDropdown(!showDropdown);
                         }}
-                        className="relative p-2 bg-[#30363d] hover:bg-[#484f58] text-[#e6edf3] rounded-lg transition-colors"
+                        className="relative p-2.5 bg-gradient-to-r from-[#30363d] to-[#484f58] hover:from-[#484f58] hover:to-[#56606d] text-[#e6edf3] rounded-xl transition-all duration-200 shadow-lg ring-1 ring-white/10 hover:shadow-xl hover:scale-105"
                         title="Notifications"
                         style={{ minWidth: '40px', minHeight: '40px' }}
                     >
                         <Icon name="bell" size={16} />
-                        🔔
                         {unreadCount > 0 && (
                             <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#f85149] rounded-full flex items-center justify-center">
                                 <span className="text-xs text-white font-bold">
