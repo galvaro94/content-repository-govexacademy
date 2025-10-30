@@ -5287,11 +5287,47 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 'IT': 'bg-green-600'   // Italian
             };
 
-            // Helper functions for colors - Consistent program colors based on program code
+            // Helper functions for colors - Consistent program colors with specific mappings
             const getProgramColor = (programCode) => {
                 if (!programCode) return 'bg-gray-600';
 
-                // Create a simple hash of the program code to ensure consistency
+                // Specific color mappings for your programs
+                const specificProgramColors = {
+                    'Bloomberg Harvard City Leadership Initiative Data Track': 'bg-purple-600',
+                    'Bloomberg City Data Alliance Program': 'bg-teal-600',
+                    'What Works Cities Sprints': 'bg-orange-600',
+                    'City AI Connect': 'bg-pink-600',
+                    'AI Courses': 'bg-indigo-600',
+
+                    // Common abbreviations/variants
+                    'BHCLI Data Track': 'bg-purple-600',
+                    'BCDA Program': 'bg-teal-600',
+                    'WWC Sprints': 'bg-orange-600',
+                    'AI Connect': 'bg-pink-600',
+                    'AI Course': 'bg-indigo-600',
+
+                    // Short codes if used
+                    'BHCLI': 'bg-purple-600',
+                    'BCDA': 'bg-teal-600',
+                    'WWC': 'bg-orange-600',
+                    'CAC': 'bg-pink-600',
+                    'AIC': 'bg-indigo-600'
+                };
+
+                // Check for exact match first
+                if (specificProgramColors[programCode]) {
+                    return specificProgramColors[programCode];
+                }
+
+                // Check for partial matches (case-insensitive)
+                const lowerCode = programCode.toLowerCase();
+                for (const [key, color] of Object.entries(specificProgramColors)) {
+                    if (lowerCode.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerCode)) {
+                        return color;
+                    }
+                }
+
+                // Fallback to hash-based color for other programs
                 let hash = 0;
                 for (let i = 0; i < programCode.length; i++) {
                     const char = programCode.charCodeAt(i);
@@ -5299,9 +5335,10 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                     hash = hash & hash; // Convert to 32-bit integer
                 }
 
-                // Use absolute value and map to color array
-                const index = Math.abs(hash) % programColors.length;
-                return programColors[index];
+                // Use remaining colors from the palette (excluding the 5 reserved colors)
+                const fallbackColors = ['bg-yellow-600', 'bg-cyan-600', 'bg-rose-600', 'bg-emerald-600', 'bg-violet-600', 'bg-amber-600', 'bg-lime-600'];
+                const index = Math.abs(hash) % fallbackColors.length;
+                return fallbackColors[index];
             };
 
             const getTopicColor = (topic, index) => {
