@@ -5287,9 +5287,21 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
                 'IT': 'bg-green-600'   // Italian
             };
 
-            // Helper functions for colors
-            const getProgramColor = (programCode, index) => {
-                return programColors[index % programColors.length];
+            // Helper functions for colors - Consistent program colors based on program code
+            const getProgramColor = (programCode) => {
+                if (!programCode) return 'bg-gray-600';
+
+                // Create a simple hash of the program code to ensure consistency
+                let hash = 0;
+                for (let i = 0; i < programCode.length; i++) {
+                    const char = programCode.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // Convert to 32-bit integer
+                }
+
+                // Use absolute value and map to color array
+                const index = Math.abs(hash) % programColors.length;
+                return programColors[index];
             };
 
             const getTopicColor = (topic, index) => {
@@ -5357,11 +5369,11 @@ ${result.errors.map(e => `${e.email}: ${e.error}`).join('\n')}`;
 
                     {/* Primary Badges Section */}
                     <div className="flex flex-wrap items-center gap-2 mb-4">
-                        {/* Program badges with unique colors */}
-                        {resourcePrograms.map((programCode, index) => (
+                        {/* Program badges with consistent colors */}
+                        {resourcePrograms.map((programCode) => (
                             <span
                                 key={programCode}
-                                className={`px-3 py-1 text-xs font-medium rounded-full text-white ${getProgramColor(programCode, index)}`}
+                                className={`px-3 py-1 text-xs font-medium rounded-full text-white ${getProgramColor(programCode)}`}
                             >
                                 {programCode}
                             </span>
